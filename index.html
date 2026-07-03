@@ -364,7 +364,7 @@
     import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, addDoc, onSnapshot, query, orderBy,
-             serverTimestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+             serverTimestamp, deleteDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // ─── State ────────────────────────────────────────────────────────────────
     let db = null, auth = null;
@@ -378,11 +378,58 @@
 
     const LOCAL_KEY      = 'ahmed_ausgaben';
     const LOGIN_KEY      = 'ahmed_logged_user';
+    const BUDGET_KEY      = 'ahmed_budget';         // number, default 1280
     const CAT_BUDGET_KEY = 'ahmed_cat_budgets';   // { Lebensmittel: 400, ... }
     const RESET_DAY_KEY  = 'ahmed_reset_day';     // number, default 14
     const CUSTOM_KW_KEY  = 'ahmed_custom_keywords'; // { Kategorie: ['word1','word2'] }
     const CUSTOM_CAT_KEY = 'ahmed_custom_cats';     // { KategorieName: { pill, dot } }
     const INSTALL_HINT_KEY = 'ahmed_install_hint_dismissed';
+
+    // ─── Geteilte Einstellungen (Budget, Kategorie-Budgets, Reset-Tag, Keywords, Kategorien) ──
+    // Werden über Firebase (settings/shared) zwischen allen Geräten synchronisiert.
+    // localStorage dient nur noch als Offline-Fallback-Cache.
+    function loadLocalSettings() {
+        return {
+            budget:         parseFloat(localStorage.getItem(BUDGET_KEY)) || 1280,
+            catBudgets:     JSON.parse(localStorage.getItem(CAT_BUDGET_KEY)  || '{}'),
+            resetDay:       parseInt(localStorage.getItem(RESET_DAY_KEY)    || '14'),
+            customKeywords: JSON.parse(localStorage.getItem(CUSTOM_KW_KEY)  || '{}'),
+            customCats:     JSON.parse(localStorage.getItem(CUSTOM_CAT_KEY) || '{}'),
+        };
+    }
+    let sharedSettings = loadLocalSettings();
+
+    function saveLocalSettingsCache() {
+        localStorage.setItem(BUDGET_KEY, sharedSettings.budget);
+        localStorage.setItem(CAT_BUDGET_KEY, JSON.stringify(sharedSettings.catBudgets));
+        localStorage.setItem(RESET_DAY_KEY, sharedSettings.resetDay);
+        localStorage.setItem(CUSTOM_KW_KEY, JSON.stringify(sharedSettings.customKeywords));
+        localStorage.setItem(CUSTOM_CAT_KEY, JSON.stringify(sharedSettings.customCats));
+    }
+
+    // Änderung lokal cachen und (wenn online) nach Firebase schreiben, damit beide Geräte
+    // dieselben Einstellungen sehen.
+    async function pushSettings() {
+        saveLocalSettingsCache();
+        if (useFirebase && db) {
+            try { await setDoc(doc(db, 'settings', 'shared'), sharedSettings); }
+            catch (e) { console.error('Einstellungen konnten nicht synchronisiert werden:', e); }
+        }
+    }
+
+    // UI nach (lokaler oder remote empfangener) Einstellungsänderung aktualisieren
+    function applySettingsToUI() {
+        document.getElementById('budgetInput').value = sharedSettings.budget;
+        updateBudget(lastTotal);
+        refreshCategorySelects();
+        renderCustomList();
+        renderCatBudgetInputs();
+        if (!document.getElementById('settingsModal').classList.contains('hidden')) {
+            document.getElementById('resetDayInput').value = sharedSettings.resetDay;
+        }
+        render();
+        if (!document.getElementById('statistikView').classList.contains('hidden')) renderStats();
+    }
 
     // Farben für neue eigene Kategorien
     const EXTRA_COLORS = [
@@ -420,10 +467,10 @@
                          'rezept','brille','optiker','physiotherapie','massage','impfung','corona'],
     };
 
-    function getCustomKW()   { return JSON.parse(localStorage.getItem(CUSTOM_KW_KEY)  || '{}'); }
-    function getCustomCats() { return JSON.parse(localStorage.getItem(CUSTOM_CAT_KEY) || '{}'); }
-    function getCatBudgets() { return JSON.parse(localStorage.getItem(CAT_BUDGET_KEY) || '{}'); }
-    function getResetDay()   { return parseInt(localStorage.getItem(RESET_DAY_KEY)    || '14'); }
+    function getCustomKW()   { return sharedSettings.customKeywords; }
+    function getCustomCats() { return sharedSettings.customCats; }
+    function getCatBudgets() { return sharedSettings.catBudgets; }
+    function getResetDay()   { return sharedSettings.resetDay; }
 
     // Budgetzeitraum: vom letzten "ResetDay" bis heute (oder ab einem übergebenen Referenzdatum)
     function getBudgetPeriodStart(refDate) {
@@ -581,7 +628,7 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
             del.addEventListener('click', () => {
                 const kw = getCustomKW();
                 if (kw[cat]) { kw[cat] = kw[cat].filter(k => k !== w); if (!kw[cat].length) delete kw[cat]; }
-                localStorage.setItem(CUSTOM_KW_KEY, JSON.stringify(kw));
+                pushSettings();
                 renderCustomList();
                 refreshCategorySelects();
             });
@@ -720,6 +767,9 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
         appId:             "1:744819288701:web:d211898dcf553d22221f14"
     };
 
+    // Lokal gecachte Einstellungen sofort anzeigen (bevor Firebase evtl. aktuellere liefert)
+    document.getElementById('budgetInput').value = sharedSettings.budget;
+
     // Firebase SOFORT starten — unabhängig vom Login
     initApp();
 
@@ -788,6 +838,10 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
     }
 
     document.getElementById('budgetInput').addEventListener('input', () => updateBudget(lastTotal));
+    document.getElementById('budgetInput').addEventListener('change', () => {
+        sharedSettings.budget = parseFloat(document.getElementById('budgetInput').value) || 0;
+        pushSettings();
+    });
 
     // ─── Render ───────────────────────────────────────────────────────────────
     // Kleine Ampel für Lebensmittel/Transport/Kinder: grün/gelb/rot je nach Budgetauslastung
@@ -1409,7 +1463,8 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
         const inputs  = document.querySelectorAll('#catBudgetInputs input[data-cat]');
         const budgets = {};
         inputs.forEach(inp => { const v = parseFloat(inp.value); if (v > 0) budgets[inp.dataset.cat] = v; });
-        localStorage.setItem(CAT_BUDGET_KEY, JSON.stringify(budgets));
+        sharedSettings.catBudgets = budgets;
+        pushSettings();
         render();
         document.getElementById('saveCatBudgetsBtn').textContent = '✔ Gespeichert!';
         setTimeout(() => { document.getElementById('saveCatBudgetsBtn').textContent = '💾 Kategorie-Budgets speichern'; }, 1500);
@@ -1418,7 +1473,8 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
     document.getElementById('saveResetDayBtn').addEventListener('click', () => {
         const day = parseInt(document.getElementById('resetDayInput').value);
         if (day >= 1 && day <= 28) {
-            localStorage.setItem(RESET_DAY_KEY, day);
+            sharedSettings.resetDay = day;
+            pushSettings();
             // Update hint text
             const nextDay = day - 1 > 0 ? day - 1 : 28;
             document.querySelector('#saveResetDayBtn').closest('.space-y-2').querySelector('p').textContent =
@@ -1448,7 +1504,6 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
             const cc  = getCustomCats();
             const idx = Object.keys(cc).length % EXTRA_COLORS.length;
             cc[newName] = EXTRA_COLORS[idx];
-            localStorage.setItem(CUSTOM_CAT_KEY, JSON.stringify(cc));
             category = newName;
             document.getElementById('newCatNameInput').value = '';
             document.getElementById('newCatNameInput').classList.add('hidden');
@@ -1458,7 +1513,7 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
         if (!kw[category]) kw[category] = [];
         const lw = keyword.toLowerCase();
         if (!kw[category].includes(lw)) kw[category].push(lw);
-        localStorage.setItem(CUSTOM_KW_KEY, JSON.stringify(kw));
+        pushSettings();
 
         document.getElementById('customKeyInput').value = '';
         document.getElementById('customCatSelect').value = '';
@@ -1490,6 +1545,20 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
                         query(collection(db, 'ausgaben'), orderBy('timestamp', 'desc')),
                         snap => { allEntries = []; snap.forEach(d => allEntries.push({ id: d.id, ...d.data() })); rebuildMonthFilter(); render(); if (!document.getElementById('statistikView').classList.contains('hidden')) renderStats(); },
                         err  => { setMode(false, err.code); loadFromLocal(); }
+                    );
+                    onSnapshot(
+                        doc(db, 'settings', 'shared'),
+                        snap => {
+                            if (snap.exists()) {
+                                sharedSettings = { ...sharedSettings, ...snap.data() };
+                                saveLocalSettingsCache();
+                                applySettingsToUI();
+                            } else {
+                                // Noch keine geteilten Einstellungen in Firebase — lokale als Startwert übernehmen
+                                setDoc(doc(db, 'settings', 'shared'), sharedSettings).catch(() => {});
+                            }
+                        },
+                        err => console.error('Settings-Sync Fehler:', err.code)
                     );
                 })
                 .catch(err => { setMode(false, err.code + ': ' + err.message); loadFromLocal(); });
