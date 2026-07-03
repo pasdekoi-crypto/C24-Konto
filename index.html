@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kontotrecher – GHA Ahmed</title>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Kontotrecher">
+    <meta name="theme-color" content="#0f172a">
+    <link id="pwaManifest" rel="manifest">
+    <link id="pwaIcon" rel="apple-touch-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes goldGlow {
+            0% { text-shadow: 0 0 5px #ffd700, 0 0 15px #ffd700; color: #ffd700; }
+            50% { text-shadow: 0 0 20px #ffd700, 0 0 40px #ff8c00; color: #ffaa00; }
+            100% { text-shadow: none; color: #6b7280; }
+        }
+        .brand-text { animation: goldGlow 7s infinite; }
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.15); }
+            40% { transform: scale(1); }
+            60% { transform: scale(1.1); }
+        }
+        .heartbeat { display: inline-block; animation: heartbeat 1s ease-in-out infinite; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1f2937; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; }
+        select option { background: #1f2937; color: white; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white font-sans min-h-screen flex flex-col items-center p-4 relative">
+
+    <!-- ═══ LOGIN SCREEN ════════════════════════════════════════════════════ -->
+    <div id="loginScreen" class="fixed inset-0 bg-gray-900 flex flex-col items-center justify-center z-50 p-6">
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-bold mb-2">C24 KONTO</h1>
+            <p class="text-gray-400">Für Ahmed & Rania</p>
+            <div class="brand-text text-[10px] font-normal mt-3 uppercase tracking-wide opacity-70">APP Created by GHA Ahmed</div>
+        </div>
+
+        <p class="text-xl text-gray-300 mb-8 font-medium">Wer bist du?</p>
+
+        <div class="grid grid-cols-2 gap-5 w-full max-w-sm">
+            <!-- Ahmed -->
+            <button id="loginAhmed"
+                class="flex flex-col items-center gap-3 bg-blue-900/40 hover:bg-blue-800/60 border-2 border-blue-700 hover:border-blue-500 rounded-2xl p-6 transition-all active:scale-95">
+                <div class="w-16 h-16 rounded-full bg-blue-700 flex items-center justify-center text-3xl font-bold">A</div>
+                <span class="text-lg font-bold text-blue-200">Ahmed</span>
+            </button>
+            <!-- Rania -->
+            <button id="loginRania"
+                class="flex flex-col items-center gap-3 bg-pink-900/40 hover:bg-pink-800/60 border-2 border-pink-700 hover:border-pink-500 rounded-2xl p-6 transition-all active:scale-95">
+                <div class="w-16 h-16 rounded-full bg-pink-700 flex items-center justify-center text-3xl font-bold">R</div>
+                <span class="text-lg font-bold text-pink-200">Rania</span>
+                <span class="text-xs text-pink-400">Profil</span>
+            </button>
+        </div>
+
+        <p class="text-gray-600 text-xs mt-8">Auswahl wird gespeichert</p>
+    </div>
+
+    <!-- ═══ MAIN APP ════════════════════════════════════════════════════════ -->
+    <div id="mainApp" class="w-full flex flex-col items-center hidden">
+
+        <button id="openSettingsBtn" class="absolute top-4 right-4 p-2 text-gray-500 hover:text-teal-400 transition-colors" title="Einstellungen">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+        </button>
+
+        <div class="w-full max-w-md mt-4 mb-6 text-center">
+            <h1 class="text-3xl font-bold mb-1">C24 KONTO</h1>
+            <!-- User badge -->
+            <div id="userBadge" class="inline-flex items-center gap-2 mt-2 px-4 py-1.5 rounded-full text-sm font-bold"></div>
+            <div id="modeIndicator" class="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full bg-gray-800 border border-gray-700 text-xs text-gray-400 ml-2">
+                <span id="modeDot" class="w-2 h-2 rounded-full bg-gray-500"></span>
+                <span id="modeText">Wird geladen…</span>
+            </div>
+            <div class="brand-text text-[10px] font-normal mt-2 uppercase tracking-wide opacity-70">APP Created by GHA Ahmed</div>
+        </div>
+
+        <!-- Homescreen-Hinweis (PWA installieren) -->
+        <div id="installHint" class="hidden w-full max-w-md bg-teal-900/30 border border-teal-700/50 rounded-xl px-4 py-3 mb-4 flex items-start gap-3">
+            <span class="text-xl leading-none">📲</span>
+            <div class="flex-1 text-sm text-teal-200">
+                Füge „C24 KONTO" deinem Homescreen hinzu, um sie wie eine echte App zu öffnen:
+                <span class="block text-teal-400 text-xs mt-1">iPhone: Teilen ⬆️ → „Zum Home-Bildschirm" &nbsp;|&nbsp; Android: Menü ⋮ → „App installieren"</span>
+            </div>
+            <button id="dismissInstallHint" class="text-teal-400 hover:text-white transition-colors flex-shrink-0" title="Ausblenden">✕</button>
+        </div>
+
+        <div class="w-full max-w-md bg-gray-800 rounded-2xl shadow-2xl p-6 border border-gray-700 space-y-5">
+
+            <!-- Tab Navigation -->
+            <div class="flex rounded-xl bg-gray-700/50 p-1">
+                <button id="tabAusgaben"  class="flex-1 py-1.5 rounded-lg text-xs font-bold bg-gray-600 text-white transition-all">💸 Ausgaben</button>
+                <button id="tabEinkaufe" class="flex-1 py-1.5 rounded-lg text-xs font-bold text-gray-400 hover:text-white transition-all">🛒 Einkäufe</button>
+                <button id="tabStatistik" class="flex-1 py-1.5 rounded-lg text-xs font-bold text-gray-400 hover:text-white transition-all">📊 Statistik</button>
+            </div>
+
+            <!-- ═══ AUSGABEN VIEW ═══ -->
+            <div id="ausgabenView" class="space-y-5">
+
+            <!-- Budget -->
+            <div class="bg-gray-700/50 rounded-xl p-4 border border-gray-600 flex flex-col gap-3">
+                <div class="text-center">
+                    <p class="text-xs text-gray-400 uppercase tracking-wide">Übrig</p>
+                    <p id="budgetRemainingTop" class="text-4xl font-bold text-teal-400">0,00 €</p>
+                    <p id="dailyAvailable" class="text-xs text-gray-400 mt-1"></p>
+                </div>
+                <div class="w-full bg-gray-800 rounded-full h-2 shadow-inner">
+                    <div id="budgetProgress" class="bg-teal-500 h-2 rounded-full transition-all duration-500" style="width:0%"></div>
+                </div>
+                <div id="totalSpentBottom" class="text-base font-bold text-rose-500 text-center">0,00 € ausgegeben</div>
+                <div id="budgetPeriodLabel" class="text-xs text-gray-500 text-center -mt-1"></div>
+            </div>
+
+            <!-- Kategorie-Ampel: Lebensmittel/Transport/Kinder auf einen Blick -->
+            <div id="categoryTrafficLight" class="hidden grid grid-cols-3 gap-2"></div>
+
+            <!-- Ahmed / Rania Split -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-blue-900/30 border border-blue-800/50 rounded-xl p-3 text-center">
+                    <p class="text-xs text-blue-400 uppercase tracking-wide mb-1">Ahmed</p>
+                    <p id="ahmedTotal" class="text-lg font-bold text-blue-300">0,00 €</p>
+                </div>
+                <div class="bg-pink-900/30 border border-pink-800/50 rounded-xl p-3 text-center">
+                    <p class="text-xs text-pink-400 uppercase tracking-wide mb-1">Rania</p>
+                    <p id="raniaTotal" class="text-lg font-bold text-pink-300">0,00 €</p>
+                </div>
+            </div>
+
+            <!-- Category Breakdown -->
+            <div id="categoryBreakdown" class="space-y-2 hidden"></div>
+
+            <!-- Month Filter + CSV -->
+            <div class="flex gap-3 items-center">
+                <select id="monthFilter"
+                    class="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:outline-none focus:border-teal-500 text-sm">
+                    <option value="all">Alle Monate</option>
+                </select>
+                <button id="csvBtn"
+                    class="bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-300 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap">
+                    ↓ CSV
+                </button>
+            </div>
+
+            <!-- Entry List -->
+            <div>
+                <h3 class="text-sm text-gray-400 uppercase border-b border-gray-700 pb-2 mb-4">Verlauf</h3>
+                <div id="expenseList" class="space-y-3 max-h-72 overflow-y-auto custom-scrollbar pr-1"></div>
+            </div>
+
+            </div><!-- END ausgabenView -->
+
+            <!-- ═══ EINKÄUFE VIEW ═════════════════════════════════════════════ -->
+            <div id="einkaufeView" class="hidden space-y-3">
+
+                <input type="text" id="titleInput" placeholder="Was gekauft?"
+                    class="w-full bg-gray-700 text-white rounded-lg px-4 py-3 border border-gray-600 focus:outline-none focus:border-teal-500">
+
+                <input type="text" id="noteInput" placeholder="Notiz (optional)"
+                    class="w-full bg-gray-700 text-white rounded-lg px-4 py-3 border border-gray-600 focus:outline-none focus:border-teal-500 text-sm">
+
+                <div class="grid grid-cols-2 gap-3">
+                    <select id="categorySelect"
+                        class="bg-gray-700 text-white rounded-lg px-3 py-3 border border-gray-600 focus:outline-none focus:border-teal-500">
+                        <option value="Lebensmittel">🛒 Lebensmittel</option>
+                        <option value="Transport">🚗 Transport</option>
+                        <option value="Freizeit">🎉 Freizeit</option>
+                        <option value="Kinder">👶 Kinder</option>
+                        <option value="Kleidung">👗 Kleidung</option>
+                        <option value="Gesundheit">💊 Gesundheit</option>
+                        <option value="Sonstiges">📦 Sonstiges</option>
+                    </select>
+
+                    <!-- Person toggle: Admin (Ahmed) sieht beide, Rania sieht nur sich -->
+                    <div id="personToggle" class="flex gap-1">
+                        <button id="btnAhmed" class="flex-1 py-3 rounded-lg font-bold bg-blue-600 text-white transition-colors text-sm">Ahmed</button>
+                        <button id="btnRania"  class="flex-1 py-3 rounded-lg font-bold bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors text-sm">Rania</button>
+                    </div>
+                </div>
+
+                <!-- Auto-Kategorie Hinweis -->
+                <p id="categoryHint" class="hidden col-span-2 text-xs text-teal-400 text-center -mt-1"></p>
+
+                <!-- Admin-Hinweis (nur für Ahmed sichtbar wenn er Rania auswählt) -->
+                <div id="adminHint" class="hidden bg-pink-900/30 border border-pink-800 rounded-lg px-3 py-2 text-xs text-pink-300 text-center">
+                    ⚙️ Admin-Modus: Du trägst im Namen von Rania ein
+                </div>
+
+                <input type="number" id="amountInput" placeholder="Betrag (€)"
+                    class="w-full bg-gray-700 text-white rounded-lg px-4 py-3 border border-gray-600 focus:outline-none focus:border-teal-500">
+
+                <button id="addBtn" class="w-full bg-teal-500 hover:bg-teal-400 text-gray-900 font-bold py-3 rounded-lg transition-colors">
+                    Eintragen
+                </button>
+
+            </div><!-- END einkaufeView -->
+
+            <!-- ═══ STATISTIK VIEW ════════════════════════════════════════════ -->
+            <div id="statistikView" class="hidden space-y-6">
+
+                <!-- Hochrechnung für die laufende Periode -->
+                <div id="statsForecast" class="hidden bg-gray-700/50 rounded-xl p-4 border border-gray-600 text-center"></div>
+
+                <!-- Ahmed vs Rania Gesamtübersicht -->
+                <div id="statsPersonSplit" class="hidden bg-gray-700/50 rounded-xl p-4 border border-gray-600"></div>
+
+                <!-- Zeitraum wählen (Gehalts-Periode) -->
+                <select id="statsMonthFilter"
+                    class="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:outline-none focus:border-teal-500 text-sm">
+                    <option value="all">Alle Zeiträume vergleichen</option>
+                </select>
+
+                <!-- Ausgaben pro Monat -->
+                <div id="statsMonthBars" class="space-y-3"></div>
+
+                <!-- Kategorien Auswertung -->
+                <div id="statsCatBars" class="space-y-3"></div>
+
+                <!-- Größte Einzelausgaben -->
+                <div id="statsTopExpenses" class="space-y-2"></div>
+
+                <!-- Kategorie-Monatsvergleich -->
+                <div id="statsCatCompare" class="space-y-3"></div>
+
+            </div><!-- END statistikView -->
+
+        </div>
+    </div>
+
+    <!-- Sofort den gespeicherten Login anwenden, damit der "Wer bist du?"-Screen bei
+         wiederkehrenden Besuchen nicht mehr aufblitzt -->
+    <script>
+        (function() {
+            var savedUser = localStorage.getItem('ahmed_logged_user');
+            if (savedUser === 'Ahmed' || savedUser === 'Rania') {
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+            }
+        })();
+    </script>
+
+    <!-- ═══ DELETE CONFIRMATION ══════════════════════════════════════════════ -->
+    <div id="confirmModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+        <div class="bg-gray-800 rounded-xl p-6 w-full max-w-xs border border-gray-700 text-center">
+            <p class="text-white font-bold mb-1">Eintrag löschen?</p>
+            <p id="confirmTitle" class="text-gray-400 text-sm mb-5"></p>
+            <div class="flex gap-3">
+                <button id="confirmDeleteBtn" class="flex-1 bg-rose-500 hover:bg-rose-400 py-2 rounded-lg font-bold transition-colors">Löschen</button>
+                <button id="cancelDeleteBtn"  class="flex-1 bg-gray-600 hover:bg-gray-500 py-2 rounded-lg font-bold transition-colors">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ SETTINGS MODAL ═══════════════════════════════════════════════════ -->
+    <div id="settingsModal" class="hidden fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-4">
+        <div class="bg-gray-800 rounded-xl p-6 w-full max-w-sm border border-gray-700 space-y-4">
+            <h2 class="text-xl font-bold text-white">Einstellungen</h2>
+
+            <!-- Logged-in user info -->
+            <div id="currentUserInfo" class="rounded-lg p-3 text-sm font-medium text-center"></div>
+
+            <!-- Switch user -->
+            <button id="switchUserBtn" class="w-full bg-gray-700 hover:bg-gray-600 border border-gray-600 py-2 rounded-lg text-sm font-bold transition-colors">
+                👤 Benutzer wechseln
+            </button>
+
+            <!-- Firebase status -->
+            <div id="settingsModeInfo" class="bg-gray-700/60 rounded-lg p-3 text-sm text-gray-300"></div>
+
+            <!-- ── Budget ── -->
+            <div class="border-t border-gray-700 pt-4 space-y-2">
+                <label for="budgetInput" class="text-xs font-bold text-gray-400 uppercase tracking-wide cursor-pointer">💰 Budget (€ / Zeitraum)</label>
+                <input type="number" id="budgetInput" value="1280"
+                    class="w-full bg-gray-700 text-white text-lg font-bold p-2 rounded border border-transparent focus:outline-none focus:border-teal-500">
+            </div>
+
+            <!-- ── Eigene Keywords (aufklappbar) ── -->
+            <div class="border-t border-gray-700 pt-4">
+                <button id="toggleKeywordsBtn" type="button"
+                    class="w-full flex items-center justify-between bg-gray-700/50 hover:bg-gray-700 rounded-lg px-3 py-2.5 text-xs font-bold text-gray-300 uppercase tracking-wide transition-colors">
+                    <span>⚡ Eigene Keywords & Kategorien</span>
+                    <span id="toggleKeywordsIcon" class="text-gray-500 transition-transform">▸</span>
+                </button>
+                <div id="keywordsSection" class="hidden space-y-2 pt-3">
+                    <input type="text" id="customKeyInput" placeholder='Keyword (z.B. "Rewe Nord" oder "Lara Schule")'
+                        class="w-full bg-gray-700 text-white p-2 rounded text-sm border border-transparent focus:outline-none focus:border-teal-500">
+
+                    <div class="flex gap-2">
+                        <select id="customCatSelect"
+                            class="flex-1 bg-gray-700 text-white p-2 rounded text-sm border border-transparent focus:outline-none focus:border-teal-500">
+                            <option value="">-- Kategorie wählen --</option>
+                            <option value="Lebensmittel">🛒 Lebensmittel</option>
+                            <option value="Transport">🚗 Transport</option>
+                            <option value="Freizeit">🎉 Freizeit</option>
+                            <option value="Kinder">👶 Kinder</option>
+                            <option value="Kleidung">👗 Kleidung</option>
+                            <option value="Gesundheit">💊 Gesundheit</option>
+                            <option value="Sonstiges">📦 Sonstiges</option>
+                            <option value="__new__">✚ Neue Kategorie erstellen…</option>
+                        </select>
+                        <button id="saveCustomKeyBtn"
+                            class="bg-teal-500 hover:bg-teal-400 text-gray-900 font-bold px-4 rounded transition-colors">+</button>
+                    </div>
+
+                    <input type="text" id="newCatNameInput" placeholder="Name der neuen Kategorie"
+                        class="w-full bg-gray-700 text-white p-2 rounded text-sm border border-transparent focus:outline-none focus:border-teal-500 hidden">
+
+                    <div id="customKeywordsList" class="space-y-1 max-h-40 overflow-y-auto custom-scrollbar pt-1"></div>
+                </div>
+            </div>
+
+            <!-- ── Budget pro Kategorie (aufklappbar) ── -->
+            <div class="border-t border-gray-700 pt-4">
+                <button id="toggleCatBudgetBtn" type="button"
+                    class="w-full flex items-center justify-between bg-gray-700/50 hover:bg-gray-700 rounded-lg px-3 py-2.5 text-xs font-bold text-gray-300 uppercase tracking-wide transition-colors">
+                    <span>💰 Budget pro Kategorie</span>
+                    <span id="toggleCatBudgetIcon" class="text-gray-500 transition-transform">▸</span>
+                </button>
+                <div id="catBudgetSection" class="hidden space-y-2 pt-3">
+                    <div id="catBudgetInputs" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-1"></div>
+                    <button id="saveCatBudgetsBtn"
+                        class="w-full bg-teal-500/20 hover:bg-teal-500/30 border border-teal-500/50 text-teal-400 py-2 rounded text-sm font-bold transition-colors">
+                        💾 Kategorie-Budgets speichern
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── Budget-Reset Tag ── -->
+            <div class="border-t border-gray-700 pt-4 space-y-2">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">📅 Gehalt kommt am</p>
+                <div class="flex items-center gap-3">
+                    <span class="text-gray-300 text-sm">Jeden</span>
+                    <input type="number" id="resetDayInput" min="1" max="28" value="14"
+                        class="w-16 bg-gray-700 text-white text-center p-2 rounded text-sm font-bold border border-transparent focus:outline-none focus:border-teal-500">
+                    <span class="text-gray-300 text-sm">. des Monats</span>
+                    <button id="saveResetDayBtn"
+                        class="ml-auto bg-teal-500/20 hover:bg-teal-500/30 border border-teal-500/50 text-teal-400 px-3 py-2 rounded text-sm font-bold transition-colors">
+                        ✔
+                    </button>
+                </div>
+                <p class="text-gray-600 text-xs">Budget-Zeitraum läuft vom 14. bis zum 13. des nächsten Monats.</p>
+            </div>
+
+            <button id="clearLocalBtn" class="w-full bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 rounded text-sm font-bold transition-colors">
+                🗑️ Alle Daten löschen
+            </button>
+
+            <button id="cancelSettingsBtn" class="w-full bg-gray-700 hover:bg-gray-600 py-2 rounded font-bold transition-colors">Schließen</button>
+        </div>
+    </div>
+
+<script type="module">
+    import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy,
+             serverTimestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // ─── State ────────────────────────────────────────────────────────────────
+    let db = null, auth = null;
+    let useFirebase     = false;
+    let allEntries      = [];
+    let lastTotal       = 0;
+    let pendingDeleteId = null;
+    let currentUser     = null;   // 'Ahmed' | 'Rania'
+    let selectedPerson  = 'Ahmed';
+    let selectedMonth   = 'all';
+
+    const LOCAL_KEY      = 'ahmed_ausgaben';
+    const LOGIN_KEY      = 'ahmed_logged_user';
+    const CAT_BUDGET_KEY = 'ahmed_cat_budgets';   // { Lebensmittel: 400, ... }
+    const RESET_DAY_KEY  = 'ahmed_reset_day';     // number, default 14
+    const CUSTOM_KW_KEY  = 'ahmed_custom_keywords'; // { Kategorie: ['word1','word2'] }
+    const CUSTOM_CAT_KEY = 'ahmed_custom_cats';     // { KategorieName: { pill, dot } }
+    const INSTALL_HINT_KEY = 'ahmed_install_hint_dismissed';
+
+    // Farben für neue eigene Kategorien
+    const EXTRA_COLORS = [
+        { pill: 'bg-cyan-900 text-cyan-300',   dot: '#22d3ee' },
+        { pill: 'bg-lime-900 text-lime-300',   dot: '#a3e635' },
+        { pill: 'bg-indigo-900 text-indigo-300', dot: '#818cf8' },
+        { pill: 'bg-rose-900 text-rose-300',   dot: '#fb7185' },
+        { pill: 'bg-amber-900 text-amber-300', dot: '#fcd34d' },
+    ];
+
+    // ─── Keyword → Kategorie Erkennung ───────────────────────────────────────
+    const KEYWORDS = {
+        'Lebensmittel': ['lidl','aldi','rewe','edeka','penny','netto','kaufland','kaufmarkt','norma','spar','tegut',
+                         'supermarkt','bäcker','bäckerei','backerei','metzger','obst','gemüse','lebensmittel',
+                         'einkaufen','markt','biomarkt','rossmann','dm','drogerie','müller','real',
+                         'fleisch','milch','brot','früchte','getränke','wasser'],
+        'Transport':    ['tanken','benzin','diesel','shell','aral','esso','total','jet','tankstelle',
+                         'bahn','zug','bus','ticket','fahrkarte','taxi','uber','bolt',
+                         'mvv','hvv','öpnv','u-bahn','s-bahn','tram','straßenbahn',
+                         'parken','parkhaus','parkplatz','maut','werkstatt','tüv','autopflege',
+                         'flug','flugticket','airport','flughafen','reifen'],
+        'Freizeit':     ['restaurant','café','cafe','kino','konzert','sport','fitness','gym','schwimmbad',
+                         'urlaub','hotel','pizza','döner','doner','mcdonalds','burger king','subway',
+                         'bowling','friseur','kebab','sushi','italiener','grieche','thai','chinese',
+                         'essen gehen','biergarten','eisdiele','eis','ausflug','freizeitpark'],
+        'Kinder':       ['lara','rasha','spielzeug','lego','kita','kindergarten','schule','schulbedarf',
+                         'windeln','pampers','babynahrung','kinderbekleidung','kinderarzt','schulranzen',
+                         'schulheft','buntstift','turnschuhe kind','spielplatz','kinokind','disney',
+                         'kinderschuhe','kinderjacke','kinderhose','kindershirt'],
+        'Kleidung':     ['zara','h&m','primark','c&a','deichmann','takko','kiabi','ernsting',
+                         'schuhe','jacke','hose','shirt','kleid','kleidung','mode',
+                         'kaufhof','karstadt','adidas','nike','puma','mango','esprit',
+                         'zalando','about you','peek','p&c','pull&bear'],
+        'Gesundheit':   ['apotheke','arzt','zahnarzt','krankenhaus','klinik','medikament','tabletten',
+                         'rezept','brille','optiker','physiotherapie','massage','impfung','corona'],
+    };
+
+    function getCustomKW()   { return JSON.parse(localStorage.getItem(CUSTOM_KW_KEY)  || '{}'); }
+    function getCustomCats() { return JSON.parse(localStorage.getItem(CUSTOM_CAT_KEY) || '{}'); }
+    function getCatBudgets() { return JSON.parse(localStorage.getItem(CAT_BUDGET_KEY) || '{}'); }
+    function getResetDay()   { return parseInt(localStorage.getItem(RESET_DAY_KEY)    || '14'); }
+
+    // Budgetzeitraum: vom letzten "ResetDay" bis heute (oder ab einem übergebenen Referenzdatum)
+    function getBudgetPeriodStart(refDate) {
+        const day = getResetDay();
+        const now = refDate || new Date();
+        if (now.getDate() >= day) {
+            return new Date(now.getFullYear(), now.getMonth(), day);
+        } else {
+            return new Date(now.getFullYear(), now.getMonth() - 1, day);
+        }
+    }
+
+    function getBudgetPeriodEnd() {
+        const start = getBudgetPeriodStart();
+        const day   = getResetDay();
+        return new Date(start.getFullYear(), start.getMonth() + 1, day - 1);
+    }
+
+    // ── Zeitraum-Key (Gehalts-Periode statt Kalendermonat) für die Statistik ──
+    function periodKey(ts) {
+        const d = getDate(ts);
+        if (!d) return null;
+        const start = getBudgetPeriodStart(d);
+        return start.getFullYear() + '-' + String(start.getMonth() + 1).padStart(2, '0');
+    }
+
+    function periodLabel(pk) {
+        const [y, m] = pk.split('-').map(Number);
+        const day   = getResetDay();
+        const start = new Date(y, m - 1, day);
+        const end   = new Date(y, m, day - 1);
+        const fmt2  = d => d.toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
+        return `${fmt2(start)} – ${fmt2(end)}`;
+    }
+
+    function getBudgetPeriodEntries() {
+        const start = getBudgetPeriodStart();
+        return allEntries.filter(e => { const d = getDate(e.timestamp); return d && d >= start; });
+    }
+
+    function updateBudgetPeriodLabel() {
+        const start = getBudgetPeriodStart();
+        const day   = getResetDay();
+        const end   = new Date(start.getFullYear(), start.getMonth() + 1, day - 1);
+        const fmt2  = d => d.toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
+        document.getElementById('budgetPeriodLabel').textContent =
+            `Zeitraum: ${fmt2(start)} – ${fmt2(end)}`;
+    }
+
+    // ── PWA Setup ──────────────────────────────────────────────────────────────
+    (function setupPWA() {
+        const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+          <defs>
+            <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#0f172a"/><stop offset="100%" stop-color="#1e293b"/>
+            </linearGradient>
+            <linearGradient id="ac" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#2dd4bf"/><stop offset="100%" stop-color="#0d9488"/>
+            </linearGradient>
+          </defs>
+          <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+          <rect x="64" y="148" width="384" height="260" rx="32" fill="#1e293b"/>
+          <rect x="64" y="148" width="384" height="96"  rx="32" fill="url(#ac)" opacity=".18"/>
+          <rect x="304" y="196" width="120" height="68" rx="16" fill="url(#ac)" opacity=".22"/>
+          <circle cx="344" cy="230" r="12" fill="url(#ac)" opacity=".5"/>
+          <text x="192" y="350" font-size="196" font-family="Georgia,serif" font-weight="bold" fill="url(#ac)">€</text>
+          <text x="256" y="455" text-anchor="middle" font-size="44" font-family="Arial" font-weight="700"
+                fill="#334155" letter-spacing="8">KONTO</text>
+        </svg>`;
+        const iconUrl = 'data:image/svg+xml,' + encodeURIComponent(iconSvg);
+        document.getElementById('pwaIcon').href = iconUrl;
+
+        const manifest = {
+            name: 'Kontotrecher – GHA Ahmed', short_name: 'Kontotrecher',
+            description: 'Familienausgaben-Tracker von GHA Ahmed',
+            start_url: './', display: 'standalone',
+            background_color: '#0f172a', theme_color: '#0f172a',
+            icons: [
+                { src: iconUrl, sizes: '192x192', type: 'image/svg+xml' },
+                { src: iconUrl, sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+            ]
+        };
+        document.getElementById('pwaManifest').href =
+            'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(manifest));
+
+        // Service Worker für Offline-Fähigkeit
+        if ('serviceWorker' in navigator) {
+            const sw = `const C='konto-v1';
+self.addEventListener('install',e=>{self.skipWaiting();});
+self.addEventListener('activate',e=>{e.waitUntil(self.clients.claim());});
+self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));});`;
+            const blob  = new Blob([sw], { type: 'application/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+        }
+    })();
+
+    function getCatStyle(cat) {
+        if (CAT[cat]) return CAT[cat];
+        const cc = getCustomCats();
+        return cc[cat] || CAT['Sonstiges'];
+    }
+
+    function detectCategory(text) {
+        const lower = text.toLowerCase();
+        // Eigene Keywords haben Vorrang
+        for (const [cat, words] of Object.entries(getCustomKW())) {
+            for (const word of words) { if (lower.includes(word)) return cat; }
+        }
+        for (const [cat, words] of Object.entries(KEYWORDS)) {
+            for (const word of words) { if (lower.includes(word)) return cat; }
+        }
+        return null;
+    }
+
+    // Kategorie-Dropdown (Formular + Settings) aktualisieren
+    function refreshCategorySelects() {
+        const customCats = getCustomCats();
+        const all = [
+            { v:'Lebensmittel', l:'🛒 Lebensmittel' }, { v:'Transport', l:'🚗 Transport' },
+            { v:'Freizeit', l:'🎉 Freizeit' },          { v:'Kinder',   l:'👶 Kinder' },
+            { v:'Kleidung', l:'👗 Kleidung' },           { v:'Gesundheit',l:'💊 Gesundheit' },
+            { v:'Sonstiges',l:'📦 Sonstiges' },
+            ...Object.keys(customCats).map(c => ({ v: c, l: '⭐ ' + c }))
+        ];
+        const mainSel = document.getElementById('categorySelect');
+        const prev    = mainSel.value;
+        mainSel.innerHTML = all.map(c => `<option value="${c.v}">${c.l}</option>`).join('');
+        if (all.find(c => c.v === prev)) mainSel.value = prev;
+
+        const custSel = document.getElementById('customCatSelect');
+        custSel.innerHTML = '<option value="">-- Kategorie wählen --</option>'
+            + all.map(c => `<option value="${c.v}">${c.l}</option>`).join('')
+            + '<option value="__new__">✚ Neue Kategorie erstellen…</option>';
+    }
+
+    // Liste der eigenen Keywords in Einstellungen anzeigen
+    function renderCustomList() {
+        const custom = getCustomKW();
+        const list   = document.getElementById('customKeywordsList');
+        list.innerHTML = '';
+        const entries = Object.entries(custom).flatMap(([cat, words]) => words.map(w => ({ cat, w })));
+        if (!entries.length) {
+            list.innerHTML = '<p class="text-gray-600 text-xs text-center py-2">Noch keine eigenen Keywords.</p>';
+            return;
+        }
+        entries.forEach(({ cat, w }) => {
+            const row = document.createElement('div');
+            row.className = 'flex items-center gap-2 bg-gray-700/50 rounded px-2 py-1 text-xs';
+            const s = getCatStyle(cat);
+            row.innerHTML = `<span class="text-white flex-1">"${w}"</span>
+                <span class="px-1.5 py-0.5 rounded ${s.pill}">${cat}</span>`;
+            const del = document.createElement('button');
+            del.className = 'text-gray-500 hover:text-rose-400 transition-colors flex-shrink-0';
+            del.textContent = '✕';
+            del.addEventListener('click', () => {
+                const kw = getCustomKW();
+                if (kw[cat]) { kw[cat] = kw[cat].filter(k => k !== w); if (!kw[cat].length) delete kw[cat]; }
+                localStorage.setItem(CUSTOM_KW_KEY, JSON.stringify(kw));
+                renderCustomList();
+                refreshCategorySelects();
+            });
+            row.appendChild(del);
+            list.appendChild(row);
+        });
+    }
+
+    // ─── Category styles ──────────────────────────────────────────────────────
+    const CAT = {
+        'Lebensmittel': { pill: 'bg-teal-900 text-teal-300',    dot: '#2dd4bf' },
+        'Transport':    { pill: 'bg-yellow-900 text-yellow-300', dot: '#fbbf24' },
+        'Freizeit':     { pill: 'bg-purple-900 text-purple-300', dot: '#c084fc' },
+        'Kinder':       { pill: 'bg-orange-900 text-orange-300', dot: '#fb923c' },
+        'Kleidung':     { pill: 'bg-pink-900 text-pink-300',     dot: '#f472b6' },
+        'Gesundheit':   { pill: 'bg-red-900 text-red-300',       dot: '#f87171' },
+        'Sonstiges':    { pill: 'bg-gray-700 text-gray-300',     dot: '#9ca3af' },
+    };
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+    const fmt = n => n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+
+    function getDate(ts) {
+        if (!ts) return null;
+        if (typeof ts.toDate === 'function') return ts.toDate();
+        if (ts.ms) return new Date(ts.ms);
+        return null;
+    }
+
+    function monthKey(ts) {
+        const d = getDate(ts);
+        if (!d) return null;
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    }
+
+    function filtered() {
+        if (selectedMonth === 'all') return allEntries;
+        return allEntries.filter(e => monthKey(e.timestamp) === selectedMonth);
+    }
+
+    // ─── LOGIN ────────────────────────────────────────────────────────────────
+    function login(user) {
+        currentUser    = user;
+        selectedPerson = user;
+        localStorage.setItem(LOGIN_KEY, user);
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        applyUserUI();
+        refreshCategorySelects();
+        render();
+        showInstallHintIfNeeded();
+    }
+
+    // ── Homescreen-Hinweis ──────────────────────────────────────────────────
+    function isStandalone() {
+        return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    }
+    function showInstallHintIfNeeded() {
+        if (isStandalone() || localStorage.getItem(INSTALL_HINT_KEY)) return;
+        document.getElementById('installHint').classList.remove('hidden');
+    }
+    document.getElementById('dismissInstallHint').addEventListener('click', () => {
+        localStorage.setItem(INSTALL_HINT_KEY, '1');
+        document.getElementById('installHint').classList.add('hidden');
+    });
+
+    function applyUserUI() {
+        const isAhmed = currentUser === 'Ahmed';
+
+        // User badge in header
+        const badge = document.getElementById('userBadge');
+        badge.textContent  = isAhmed ? '👤 Ahmed' : '👤 Rania';
+        badge.className    = 'inline-flex items-center gap-2 mt-2 px-4 py-1.5 rounded-full text-sm font-bold '
+            + (isAhmed ? 'bg-blue-900/50 border border-blue-700 text-blue-200' : 'bg-pink-900/50 border border-pink-700 text-pink-200');
+
+        // Person toggle: Ahmed sieht beide Buttons, Rania nur ihren eigenen
+        const toggle = document.getElementById('personToggle');
+        if (isAhmed) {
+            toggle.innerHTML = `
+                <button id="btnAhmed" class="flex-1 py-3 rounded-lg font-bold bg-blue-600 text-white transition-colors text-sm">Ahmed</button>
+                <button id="btnRania"  class="flex-1 py-3 rounded-lg font-bold bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors text-sm">Rania</button>`;
+            document.getElementById('btnAhmed').addEventListener('click', () => setPerson('Ahmed'));
+            document.getElementById('btnRania').addEventListener('click',  () => setPerson('Rania'));
+        } else {
+            // Rania: fester Rania-Button, kein Wechsel möglich
+            toggle.innerHTML = `<div class="flex-1 py-3 rounded-lg font-bold bg-pink-600 text-white text-sm text-center">Rania</div>`;
+            selectedPerson = 'Rania';
+        }
+
+        // Settings user info
+        document.getElementById('currentUserInfo').textContent =
+            'Angemeldet als: ' + currentUser;
+        document.getElementById('currentUserInfo').className =
+            'rounded-lg p-3 text-sm font-medium text-center '
+            + (isAhmed ? 'bg-blue-900/40 border border-blue-800 text-blue-200' : 'bg-pink-900/40 border border-pink-800 text-pink-200');
+
+        // Rania: nur ansehen, kein Eintragen-Formular (nur Ahmed trägt ein) → Einkäufe-Tab ausblenden
+        if (!isAhmed) setTab('ausgaben');
+        document.getElementById('tabEinkaufe').classList.toggle('hidden', !isAhmed);
+    }
+
+    function setPerson(p) {
+        selectedPerson = p;
+        const btnA = document.getElementById('btnAhmed');
+        const btnR = document.getElementById('btnRania');
+        if (btnA) btnA.className = 'flex-1 py-3 rounded-lg font-bold transition-colors text-sm '
+            + (p === 'Ahmed' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600');
+        if (btnR) btnR.className = 'flex-1 py-3 rounded-lg font-bold transition-colors text-sm '
+            + (p === 'Rania' ? 'bg-pink-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600');
+
+        // Admin-Hinweis anzeigen wenn Ahmed für Rania einträgt
+        const hint = document.getElementById('adminHint');
+        if (currentUser === 'Ahmed' && p === 'Rania') hint.classList.remove('hidden');
+        else hint.classList.add('hidden');
+    }
+
+    // Login-Buttons
+    document.getElementById('loginAhmed').addEventListener('click', () => login('Ahmed'));
+    document.getElementById('loginRania').addEventListener('click',  () => login('Rania'));
+
+    // Benutzer wechseln
+    document.getElementById('switchUserBtn').addEventListener('click', () => {
+        localStorage.removeItem(LOGIN_KEY);
+        document.getElementById('settingsModal').classList.add('hidden');
+        document.getElementById('mainApp').classList.add('hidden');
+        document.getElementById('loginScreen').classList.remove('hidden');
+    });
+
+    // ─── Firebase Zugangsdaten (fest eingebaut) ──────────────────────────────
+    const FIREBASE_CONFIG = {
+        apiKey:            "AIzaSyBS5SLG1J2PEQJzn-uQCkEBc4RV8eIxbuE",
+        authDomain:        "project-cc57cec4-8272-412f-99f.firebaseapp.com",
+        projectId:         "project-cc57cec4-8272-412f-99f",
+        storageBucket:     "project-cc57cec4-8272-412f-99f.firebasestorage.app",
+        messagingSenderId: "744819288701",
+        appId:             "1:744819288701:web:d211898dcf553d22221f14"
+    };
+
+    // Firebase SOFORT starten — unabhängig vom Login
+    initApp();
+
+    // Gespeicherten Login prüfen
+    const savedUser = localStorage.getItem(LOGIN_KEY);
+    if (savedUser === 'Ahmed' || savedUser === 'Rania') {
+        login(savedUser);
+    }
+    // sonst bleibt Login-Screen sichtbar
+
+    // ─── Local Storage layer ──────────────────────────────────────────────────
+    function localLoad()          { return JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); }
+    function localSave(entries)   { localStorage.setItem(LOCAL_KEY, JSON.stringify(entries)); }
+    function localAdd(data)       {
+        const entries = localLoad();
+        entries.unshift({ ...data, id: Date.now() + '_' + Math.random().toString(36).slice(2), timestamp: { ms: Date.now() } });
+        localSave(entries);
+    }
+    function localDelete(id)      { localSave(localLoad().filter(e => e.id !== id)); }
+    function loadFromLocal()      { allEntries = localLoad(); rebuildMonthFilter(); render(); if (!document.getElementById('statistikView').classList.contains('hidden')) renderStats(); }
+
+    // ─── Mode indicator ───────────────────────────────────────────────────────
+    function setMode(online, errorMsg) {
+        useFirebase = online;
+        document.getElementById('modeDot').className    = 'w-2 h-2 rounded-full ' + (online ? 'bg-green-400' : 'bg-red-400');
+        document.getElementById('modeText').textContent = online ? 'Online – Firebase Sync' : 'Keine Verbindung';
+
+        const info = document.getElementById('settingsModeInfo');
+        if (errorMsg) {
+            info.innerHTML = '⚠️ <strong>Verbindungsfehler:</strong> ' + errorMsg;
+            info.className = 'bg-rose-900/40 border border-rose-800 rounded-lg p-3 text-sm text-rose-300';
+        } else {
+            info.textContent = online ? '✅ Verbunden mit Firebase – Live-Sync aktiv.' : '📱 Offline – Daten nur lokal.';
+            info.className   = 'bg-gray-700/60 rounded-lg p-3 text-sm text-gray-300';
+        }
+    }
+
+    // ─── Budget display ───────────────────────────────────────────────────────
+    function updateBudget(total) {
+        const bud  = parseFloat(document.getElementById('budgetInput').value) || 0;
+        const rem  = bud - total;
+        const pct  = bud > 0 ? Math.min((total / bud) * 100, 100) : 0;
+        const over = total > bud;
+
+        const low  = rem <= 50;
+        const warn = !low && rem <= 150;
+        const remEl = document.getElementById('budgetRemainingTop');
+        remEl.textContent = fmt(rem);
+        remEl.className   = 'text-4xl font-bold ' + (low ? 'text-rose-500 heartbeat' : warn ? 'text-amber-400' : 'text-teal-400');
+
+        // Heute noch verfügbar (Restbudget verteilt auf die restlichen Tage der Periode)
+        const msPerDay  = 1000 * 60 * 60 * 24;
+        const todayMid  = new Date(); todayMid.setHours(0, 0, 0, 0);
+        const endMid    = getBudgetPeriodEnd(); endMid.setHours(0, 0, 0, 0);
+        const daysLeft  = Math.max(1, Math.round((endMid - todayMid) / msPerDay) + 1);
+        const dailyEl   = document.getElementById('dailyAvailable');
+        dailyEl.textContent = rem > 0
+            ? `≈ ${fmt(rem / daysLeft)} pro Tag (${daysLeft} Tage übrig)`
+            : 'Budget aufgebraucht';
+
+        const bar = document.getElementById('budgetProgress');
+        bar.style.width = pct + '%';
+        bar.className   = 'h-2 rounded-full transition-all duration-500 ' + (over ? 'bg-rose-500' : 'bg-teal-500');
+
+        document.getElementById('totalSpentBottom').textContent = fmt(total) + ' ausgegeben';
+    }
+
+    document.getElementById('budgetInput').addEventListener('input', () => updateBudget(lastTotal));
+
+    // ─── Render ───────────────────────────────────────────────────────────────
+    // Kleine Ampel für Lebensmittel/Transport/Kinder: grün/gelb/rot je nach Budgetauslastung
+    function renderCategoryTrafficLight(periodCatTotals) {
+        const catBudgets = getCatBudgets();
+        const cats = ['Lebensmittel', 'Transport', 'Kinder'];
+        const el = document.getElementById('categoryTrafficLight');
+        const withBudget = cats.filter(c => catBudgets[c]);
+        if (!withBudget.length) { el.classList.add('hidden'); return; }
+        el.classList.remove('hidden');
+        el.innerHTML = withBudget.map(cat => {
+            const budget = catBudgets[cat];
+            const spent  = periodCatTotals[cat] || 0;
+            const pct    = spent / budget;
+            const color  = pct > 1 ? 'bg-rose-500' : pct >= 0.8 ? 'bg-amber-400' : 'bg-teal-400';
+            return `<div class="flex flex-col items-center gap-1 bg-gray-700/50 rounded-lg py-2 px-1 border border-gray-600">
+                <span class="w-3 h-3 rounded-full ${color}"></span>
+                <span class="text-xs text-gray-300 text-center leading-tight">${cat}</span>
+            </div>`;
+        }).join('');
+    }
+
+    function render() {
+        const entries = filtered();
+
+        // Für Budget: nur Einträge im aktuellen Budgetzeitraum (ab letztem Reset-Tag)
+        const periodEntries = getBudgetPeriodEntries();
+        let periodTotal = 0;
+        const periodCatTotals = {};
+        periodEntries.forEach(e => {
+            periodTotal += e.amount || 0;
+            const c = e.category || 'Sonstiges';
+            periodCatTotals[c] = (periodCatTotals[c] || 0) + (e.amount || 0);
+        });
+
+        // Für Anzeige (gefilterte Liste)
+        let total = 0, ahmedAmt = 0, raniaAmt = 0;
+        const catTotals = {};
+        entries.forEach(e => {
+            const amt = e.amount || 0;
+            total    += amt;
+            if (e.person === 'Rania') raniaAmt += amt; else ahmedAmt += amt;
+            const c = e.category || 'Sonstiges';
+            catTotals[c] = (catTotals[c] || 0) + amt;
+        });
+
+        lastTotal = periodTotal;
+        updateBudget(periodTotal);
+        updateBudgetPeriodLabel();
+        document.getElementById('ahmedTotal').textContent = fmt(ahmedAmt);
+        document.getElementById('raniaTotal').textContent = fmt(raniaAmt);
+
+        // Kategorie-Ampel: Lebensmittel/Transport/Kinder auf einen Blick (Budgetzeitraum)
+        renderCategoryTrafficLight(periodCatTotals);
+
+        // Category breakdown mit Kategorie-Budgets
+        const catBudgets = getCatBudgets();
+        const bd   = document.getElementById('categoryBreakdown');
+        const cats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
+        if (!cats.length) {
+            bd.classList.add('hidden');
+        } else {
+            bd.classList.remove('hidden');
+            bd.innerHTML = '';
+            cats.forEach(([cat, amt]) => {
+                const s       = getCatStyle(cat);
+                const budget  = catBudgets[cat];
+                const wrapper = document.createElement('div');
+                wrapper.className = 'flex flex-col gap-0.5 w-full';
+
+                const pill = document.createElement('div');
+                pill.className = 'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ' + s.pill;
+                const dot = document.createElement('span');
+                dot.style.cssText = `width:6px;height:6px;border-radius:50%;background:${s.dot};display:inline-block;flex-shrink:0`;
+                const label = document.createElement('span');
+                label.textContent = cat + '  ' + fmt(amt) + (budget ? ` / ${fmt(budget)}` : '');
+                pill.appendChild(dot);
+                pill.appendChild(label);
+                wrapper.appendChild(pill);
+
+                if (budget) {
+                    const pct  = Math.min(amt / budget * 100, 100).toFixed(0);
+                    const over = amt > budget;
+                    const bar  = document.createElement('div');
+                    bar.className = 'w-full bg-gray-800 rounded-full h-1.5 overflow-hidden';
+                    bar.innerHTML = `<div class="h-1.5 rounded-full transition-all duration-500 ${over ? 'bg-rose-500' : 'bg-teal-500'}" style="width:${pct}%"></div>`;
+                    wrapper.appendChild(bar);
+                    if (over) {
+                        const warn = document.createElement('p');
+                        warn.className = 'text-rose-400 text-xs pl-1';
+                        warn.textContent = `⚠ Budget überschritten um ${fmt(amt - budget)}`;
+                        wrapper.appendChild(warn);
+                    }
+                }
+                bd.appendChild(wrapper);
+            });
+        }
+
+        // Entry list
+        const list = document.getElementById('expenseList');
+        list.innerHTML = '';
+        if (!entries.length) {
+            list.innerHTML = '<p class="text-gray-500 text-center py-6">Noch keine Ausgaben eingetragen.</p>';
+            return;
+        }
+
+        entries.forEach(e => {
+            const s = getCatStyle(e.category || 'Sonstiges');
+            let dateStr = '';
+            const d = getDate(e.timestamp);
+            if (d) dateStr = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
+                           + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+
+            const item = document.createElement('div');
+            item.className = 'bg-gray-700/60 p-3 rounded-lg space-y-2';
+
+            const top = document.createElement('div');
+            top.className = 'flex justify-between items-start gap-2';
+
+            const titleEl = document.createElement('span');
+            titleEl.className = 'text-white font-medium flex-1 min-w-0 break-words';
+            titleEl.textContent = e.title;
+
+            const rhs = document.createElement('div');
+            rhs.className = 'flex items-center gap-2 flex-shrink-0';
+
+            const amtEl = document.createElement('span');
+            amtEl.className = 'font-bold text-rose-400 whitespace-nowrap';
+            amtEl.textContent = '-' + fmt(e.amount || 0);
+
+            // Löschen nur wenn Admin (Ahmed) oder eigener Eintrag
+            const canDelete = currentUser === 'Ahmed' || e.person === currentUser;
+            if (canDelete) {
+                const del = document.createElement('button');
+                del.className = 'text-gray-500 hover:text-rose-400 transition-colors';
+                del.title = 'Löschen';
+                del.textContent = '✕';
+                del.addEventListener('click', () => openConfirm(e.id, e.title));
+                rhs.appendChild(amtEl);
+                rhs.appendChild(del);
+            } else {
+                rhs.appendChild(amtEl);
+            }
+
+            top.appendChild(titleEl);
+            top.appendChild(rhs);
+            item.appendChild(top);
+
+            if (e.note) {
+                const noteEl = document.createElement('p');
+                noteEl.className = 'text-gray-400 text-xs italic';
+                noteEl.textContent = e.note;
+                item.appendChild(noteEl);
+            }
+
+            const bottom = document.createElement('div');
+            bottom.className = 'flex items-center gap-2 flex-wrap';
+
+            const catBadge = document.createElement('span');
+            catBadge.className = 'text-xs px-2 py-0.5 rounded-full font-medium ' + s.pill;
+            catBadge.textContent = e.category || 'Sonstiges';
+
+            const isRania = e.person === 'Rania';
+            const personBadge = document.createElement('span');
+            personBadge.className = 'text-xs px-2 py-0.5 rounded-full font-medium '
+                + (isRania ? 'bg-pink-900 text-pink-300' : 'bg-blue-900 text-blue-300');
+            personBadge.textContent = e.person || 'Ahmed';
+
+            bottom.appendChild(catBadge);
+            bottom.appendChild(personBadge);
+
+            if (dateStr) {
+                const dateEl = document.createElement('span');
+                dateEl.className = 'text-xs text-gray-500 ml-auto';
+                dateEl.textContent = dateStr;
+                bottom.appendChild(dateEl);
+            }
+
+            item.appendChild(bottom);
+            list.appendChild(item);
+        });
+    }
+
+    // ─── Month Filter ─────────────────────────────────────────────────────────
+    function rebuildMonthFilter() {
+        const months = new Set(allEntries.map(e => monthKey(e.timestamp)).filter(Boolean));
+        const sel    = document.getElementById('monthFilter');
+        const prev   = sel.value;
+        sel.innerHTML = '<option value="all">Alle Monate</option>';
+        [...months].sort().reverse().forEach(m => {
+            const [y, mo] = m.split('-');
+            const label   = new Date(y, mo - 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+            const opt     = document.createElement('option');
+            opt.value = m; opt.textContent = label;
+            sel.appendChild(opt);
+        });
+        if ([...months].includes(prev)) sel.value = prev;
+        selectedMonth = sel.value;
+    }
+
+    document.getElementById('monthFilter').addEventListener('change', e => {
+        selectedMonth = e.target.value; render();
+    });
+
+    // ─── CSV Export ───────────────────────────────────────────────────────────
+    document.getElementById('csvBtn').addEventListener('click', () => {
+        const entries = filtered();
+        if (!entries.length) { alert('Keine Einträge zum Exportieren.'); return; }
+        const rows = ['Datum;Zeit;Titel;Notiz;Kategorie;Person;Betrag (€)'];
+        entries.forEach(e => {
+            let dateStr = '', timeStr = '';
+            const d = getDate(e.timestamp);
+            if (d) { dateStr = d.toLocaleDateString('de-DE'); timeStr = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); }
+            const amt = (e.amount || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            rows.push([dateStr, timeStr, '"' + (e.title||'').replace(/"/g,'""') + '"',
+                '"' + (e.note||'').replace(/"/g,'""') + '"', e.category||'Sonstiges', e.person||'Ahmed', amt].join(';'));
+        });
+        const blob = new Blob(['﻿' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url; a.download = 'ausgaben_' + (selectedMonth === 'all' ? 'gesamt' : selectedMonth) + '.csv';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    });
+
+    // ─── Add Entry ────────────────────────────────────────────────────────────
+    async function addEntry() {
+        const title    = document.getElementById('titleInput').value.trim();
+        const note     = document.getElementById('noteInput').value.trim();
+        const category = document.getElementById('categorySelect').value;
+        const amount   = parseFloat(document.getElementById('amountInput').value);
+
+        if (!title)                      { alert('Bitte einen Namen eingeben.'); return; }
+        if (isNaN(amount) || amount <= 0) { alert('Bitte einen Betrag eingeben (z.B. 100).'); return; }
+
+        const btn = document.getElementById('addBtn');
+        btn.disabled = true; btn.textContent = 'Wird gespeichert…';
+
+        try {
+            const data = { title, note, category, person: selectedPerson, amount };
+            if (useFirebase && db) {
+                await addDoc(collection(db, 'ausgaben'), { ...data, timestamp: serverTimestamp() });
+            } else {
+                localAdd(data); loadFromLocal();
+            }
+            document.getElementById('titleInput').value  = '';
+            document.getElementById('noteInput').value   = '';
+            document.getElementById('amountInput').value = '';
+            // Nach Eintrag Person wieder auf eigene Person zurücksetzen
+            setPerson(currentUser);
+        } catch (e) {
+            alert('Fehler beim Speichern: ' + e.message);
+        } finally {
+            btn.disabled = false; btn.textContent = 'Eintragen';
+        }
+    }
+
+    // Auto-Kategorie beim Tippen
+    document.getElementById('titleInput').addEventListener('input', () => {
+        const detected = detectCategory(document.getElementById('titleInput').value);
+        const hint     = document.getElementById('categoryHint');
+        if (detected) {
+            document.getElementById('categorySelect').value = detected;
+            hint.textContent = '✓ Kategorie erkannt: ' + detected;
+            hint.classList.remove('hidden');
+        } else {
+            hint.classList.add('hidden');
+        }
+    });
+
+    // ─── Tab Switching ────────────────────────────────────────────────────────
+    function setTab(tab) {
+        document.getElementById('ausgabenView').classList.toggle('hidden', tab !== 'ausgaben');
+        document.getElementById('einkaufeView').classList.toggle('hidden', tab !== 'einkaufe');
+        document.getElementById('statistikView').classList.toggle('hidden', tab !== 'statistik');
+
+        const activeCls   = 'flex-1 py-1.5 rounded-lg text-xs font-bold transition-all bg-gray-600 text-white';
+        const inactiveCls = 'flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-gray-400 hover:text-white';
+        document.getElementById('tabAusgaben').className  = tab === 'ausgaben'  ? activeCls : inactiveCls;
+        document.getElementById('tabEinkaufe').className  = tab === 'einkaufe' ? activeCls : inactiveCls;
+        document.getElementById('tabStatistik').className = tab === 'statistik' ? activeCls : inactiveCls;
+
+        if (tab === 'statistik') renderStats();
+    }
+    document.getElementById('tabAusgaben').addEventListener('click',  () => setTab('ausgaben'));
+    document.getElementById('tabEinkaufe').addEventListener('click',  () => setTab('einkaufe'));
+    document.getElementById('tabStatistik').addEventListener('click', () => setTab('statistik'));
+
+    // ─── Statistik ────────────────────────────────────────────────────────────
+    function bar(pct, color) {
+        return `<div class="w-full bg-gray-800 rounded-full h-3 overflow-hidden">
+            <div class="h-3 rounded-full transition-all duration-700 ${color}" style="width:${pct}%"></div></div>`;
+    }
+
+    // Hochrechnung: bei aktuellem Ausgabentempo, wie viel wird die laufende Periode am Ende kosten
+    function renderForecast() {
+        const el = document.getElementById('statsForecast');
+        const start = getBudgetPeriodStart();
+        const end   = getBudgetPeriodEnd();
+        const msPerDay = 1000 * 60 * 60 * 24;
+        const todayMid = new Date(); todayMid.setHours(0, 0, 0, 0);
+        const startMid = new Date(start); startMid.setHours(0, 0, 0, 0);
+        const endMid   = new Date(end);   endMid.setHours(0, 0, 0, 0);
+
+        const totalDays   = Math.round((endMid - startMid) / msPerDay) + 1;
+        const daysElapsed = Math.max(1, Math.round((todayMid - startMid) / msPerDay) + 1);
+
+        const spentSoFar = getBudgetPeriodEntries().reduce((sum, e) => sum + (e.amount || 0), 0);
+        const dailyRate  = spentSoFar / daysElapsed;
+        const projected  = dailyRate * totalDays;
+
+        const bud = parseFloat(document.getElementById('budgetInput').value) || 0;
+        let colorCls = 'text-teal-400';
+        let noteHtml = '';
+        if (bud > 0) {
+            const over = projected > bud;
+            const warn = !over && projected / bud >= 0.8;
+            colorCls = over ? 'text-rose-400' : warn ? 'text-amber-400' : 'text-teal-400';
+            noteHtml = over
+                ? `<p class="text-rose-400 text-xs mt-1">⚠ ca. ${fmt(projected - bud)} über Budget</p>`
+                : `<p class="text-gray-500 text-xs mt-1">Budget: ${fmt(bud)}</p>`;
+        }
+
+        el.classList.remove('hidden');
+        el.innerHTML = `
+            <p class="text-xs text-gray-400 uppercase tracking-wide">📈 Hochrechnung bis Periodenende</p>
+            <p class="text-2xl font-bold ${colorCls} mt-1">≈ ${fmt(projected)}</p>
+            <p class="text-xs text-gray-500 mt-1">bei aktuellem Tempo (${fmt(spentSoFar)} in ${daysElapsed} von ${totalDays} Tagen)</p>
+            ${noteHtml}`;
+    }
+
+    // Ahmed vs Rania: Gesamtaufteilung über alle Einträge seit Beginn
+    function renderPersonSplit() {
+        const el = document.getElementById('statsPersonSplit');
+        if (!allEntries.length) { el.classList.add('hidden'); return; }
+
+        let ahmedAmt = 0, raniaAmt = 0;
+        allEntries.forEach(e => {
+            const amt = e.amount || 0;
+            if (e.person === 'Rania') raniaAmt += amt; else ahmedAmt += amt;
+        });
+        const total    = ahmedAmt + raniaAmt || 1;
+        const ahmedPct = Math.round(ahmedAmt / total * 100);
+        const raniaPct = 100 - ahmedPct;
+
+        el.classList.remove('hidden');
+        el.innerHTML = `
+            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide border-b border-gray-700 pb-2 mb-3">👫 Ahmed vs Rania (gesamt)</h3>
+            <div class="w-full h-3 rounded-full overflow-hidden flex bg-gray-800">
+                <div class="bg-blue-500 h-3" style="width:${ahmedPct}%"></div>
+                <div class="bg-pink-500 h-3" style="width:${raniaPct}%"></div>
+            </div>
+            <div class="flex justify-between text-sm mt-2">
+                <span class="text-blue-300 font-medium">Ahmed: ${fmt(ahmedAmt)} (${ahmedPct}%)</span>
+                <span class="text-pink-300 font-medium">Rania: ${fmt(raniaAmt)} (${raniaPct}%)</span>
+            </div>`;
+    }
+
+    function renderStats() {
+        renderForecast();
+        renderPersonSplit();
+
+        // Zeitraum-Filter im Statistik-Tab befüllen (Gehalts-Perioden statt Kalendermonate)
+        const periods = [...new Set(allEntries.map(e => periodKey(e.timestamp)).filter(Boolean))].sort().reverse();
+        const sf = document.getElementById('statsMonthFilter');
+        const prev = sf.value;
+        sf.innerHTML = '<option value="all">Alle Zeiträume vergleichen</option>'
+            + periods.map(p => `<option value="${p}">${periodLabel(p)}</option>`).join('');
+        if (periods.includes(prev)) sf.value = prev;
+
+        const filterPeriod = sf.value;
+        const entries = filterPeriod === 'all' ? allEntries
+            : allEntries.filter(e => periodKey(e.timestamp) === filterPeriod);
+
+        // ── Ausgaben pro Zeitraum ─────────────────────────────────────────────
+        const periodBarsEl = document.getElementById('statsMonthBars');
+        if (filterPeriod === 'all') {
+            const byPeriod = {};
+            allEntries.forEach(e => {
+                const pk = periodKey(e.timestamp); if (!pk) return;
+                if (!byPeriod[pk]) byPeriod[pk] = { total: 0, ahmed: 0, rania: 0 };
+                byPeriod[pk].total += e.amount || 0;
+                if (e.person === 'Rania') byPeriod[pk].rania += e.amount || 0;
+                else byPeriod[pk].ahmed += e.amount || 0;
+            });
+            const sortedP = Object.keys(byPeriod).sort().reverse();
+            const maxP = Math.max(...sortedP.map(p => byPeriod[p].total), 1);
+
+            let html = `<h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide border-b border-gray-700 pb-2">📅 Ausgaben pro Zeitraum</h3>`;
+            sortedP.forEach((pk, i) => {
+                const d = byPeriod[pk];
+                const pct = (d.total / maxP * 100).toFixed(1);
+                const prevTotal = sortedP[i + 1] ? byPeriod[sortedP[i + 1]].total : null;
+                const diff = prevTotal !== null ? ((d.total - prevTotal) / prevTotal * 100).toFixed(0) : null;
+                const diffStr = diff !== null
+                    ? `<span class="text-xs ${+diff >= 0 ? 'text-rose-400' : 'text-teal-400'}">${+diff >= 0 ? '▲' : '▼'} ${Math.abs(diff)}%</span>`
+                    : '';
+                html += `<div class="space-y-1">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="font-medium text-white">${periodLabel(pk)}</span>
+                        <div class="flex items-center gap-2">${diffStr}<span class="font-bold text-rose-400">${fmt(d.total)}</span></div>
+                    </div>
+                    ${bar(pct, 'bg-rose-500')}
+                    <div class="flex justify-between text-xs text-gray-500">
+                        <span>Ahmed: ${fmt(d.ahmed)}</span><span>Rania: ${fmt(d.rania)}</span>
+                    </div>
+                </div>`;
+            });
+            periodBarsEl.innerHTML = html || '<p class="text-gray-500 text-sm text-center py-4">Keine Daten</p>';
+        } else {
+            periodBarsEl.innerHTML = '';
+        }
+
+        // ── Kategorien Auswertung ──────────────────────────────────────────
+        const catBarsEl = document.getElementById('statsCatBars');
+        const catTotals = {};
+        entries.forEach(e => {
+            const c = e.category || 'Sonstiges';
+            catTotals[c] = (catTotals[c] || 0) + (e.amount || 0);
+        });
+        const total = Object.values(catTotals).reduce((a, b) => a + b, 0) || 1;
+        const sortedCats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
+
+        const CATCOLORS = {
+            'Lebensmittel':'bg-teal-500','Transport':'bg-yellow-500','Freizeit':'bg-purple-500',
+            'Kinder':'bg-orange-500','Kleidung':'bg-pink-500','Gesundheit':'bg-red-500','Sonstiges':'bg-gray-500'
+        };
+        const catBudgets = getCatBudgets();
+        const title = filterPeriod === 'all' ? 'Kategorien gesamt' : 'Kategorien: ' + periodLabel(filterPeriod);
+        let catHtml = `<h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide border-b border-gray-700 pb-2">🏷️ ${title}</h3>`;
+        if (!sortedCats.length) {
+            catHtml += '<p class="text-gray-500 text-sm text-center py-4">Keine Daten</p>';
+        } else {
+            sortedCats.forEach(([cat, amt]) => {
+                const pct = (amt / total * 100).toFixed(1);
+                const col = CATCOLORS[cat] || 'bg-cyan-500';
+
+                // Budget-Vergleich (nur bei einem einzelnen Zeitraum sinnvoll)
+                const budget = filterPeriod !== 'all' ? catBudgets[cat] : null;
+                let budgetHtml = '';
+                if (budget) {
+                    const bPct = Math.min(amt / budget * 100, 100).toFixed(0);
+                    const over = amt > budget;
+                    const warn = !over && (amt / budget) >= 0.8;
+                    const bBarCol  = over ? 'bg-rose-500' : warn ? 'bg-amber-400' : 'bg-teal-500';
+                    const bTextCol = over ? 'text-rose-400' : warn ? 'text-amber-400' : 'text-teal-400';
+                    budgetHtml = `
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-gray-500">Budget: ${fmt(amt)} / ${fmt(budget)}</span>
+                        <span class="${bTextCol} font-medium">${over ? '⚠ überschritten' : bPct + '%'}</span>
+                    </div>
+                    <div class="w-full bg-gray-800 rounded-full h-1 overflow-hidden">
+                        <div class="h-1 rounded-full ${bBarCol}" style="width:${bPct}%"></div>
+                    </div>`;
+                }
+
+                catHtml += `<div class="space-y-1">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-white font-medium">${cat}</span>
+                        <span class="text-gray-300">${fmt(amt)} <span class="text-gray-500">(${pct}%)</span></span>
+                    </div>
+                    ${bar(pct, col)}
+                    ${budgetHtml}
+                </div>`;
+            });
+        }
+        catBarsEl.innerHTML = catHtml;
+
+        // ── Größte Einzelausgaben ──────────────────────────────────────────
+        const topEl = document.getElementById('statsTopExpenses');
+        topEl.innerHTML = '';
+        const topTitle = document.createElement('h3');
+        topTitle.className = 'text-xs font-bold text-gray-400 uppercase tracking-wide border-b border-gray-700 pb-2';
+        topTitle.textContent = '🔝 ' + (filterPeriod === 'all' ? 'Größte Einzelausgaben (gesamt)' : 'Größte Einzelausgaben: ' + periodLabel(filterPeriod));
+        topEl.appendChild(topTitle);
+
+        const topEntries = [...entries].sort((a, b) => (b.amount || 0) - (a.amount || 0)).slice(0, 5);
+        if (!topEntries.length) {
+            const empty = document.createElement('p');
+            empty.className = 'text-gray-500 text-sm text-center py-4';
+            empty.textContent = 'Keine Daten';
+            topEl.appendChild(empty);
+        } else {
+            topEntries.forEach(e => {
+                const d = getDate(e.timestamp);
+                const dateStr = d ? d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
+
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between bg-gray-700/40 rounded-lg px-3 py-2';
+
+                const info = document.createElement('div');
+                info.className = 'min-w-0';
+                const titleEl = document.createElement('p');
+                titleEl.className = 'text-white text-sm font-medium truncate';
+                titleEl.textContent = e.title;
+                const metaEl = document.createElement('p');
+                metaEl.className = 'text-xs text-gray-500 truncate';
+                metaEl.textContent = (e.category || 'Sonstiges') + ' · ' + (e.person || 'Ahmed') + (dateStr ? ' · ' + dateStr : '');
+                info.appendChild(titleEl);
+                info.appendChild(metaEl);
+
+                const amtEl = document.createElement('span');
+                amtEl.className = 'text-rose-400 font-bold text-sm flex-shrink-0 ml-2';
+                amtEl.textContent = fmt(e.amount || 0);
+
+                row.appendChild(info);
+                row.appendChild(amtEl);
+                topEl.appendChild(row);
+            });
+        }
+
+        // ── Kategorie-Zeitraumvergleich ──────────────────────────────────────
+        const compareEl = document.getElementById('statsCatCompare');
+        if (filterPeriod === 'all' && periods.length > 1) {
+            const allCatNames = [...new Set(allEntries.map(e => e.category || 'Sonstiges'))];
+
+            // Für jede Kategorie: Zeitraum-für-Zeitraum Balken
+            let cmpHtml = `<h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide border-b border-gray-700 pb-2">🔄 Zeitraumvergleich pro Kategorie</h3>`;
+
+            allCatNames.forEach(cat => {
+                const byPC = {};
+                allEntries.filter(e => (e.category || 'Sonstiges') === cat).forEach(e => {
+                    const pk = periodKey(e.timestamp); if (!pk) return;
+                    byPC[pk] = (byPC[pk] || 0) + (e.amount || 0);
+                });
+                if (!Object.keys(byPC).length) return;
+                const maxV = Math.max(...Object.values(byPC), 1);
+                const col  = CATCOLORS[cat] || 'bg-cyan-500';
+                cmpHtml += `<div class="space-y-2 bg-gray-700/30 rounded-xl p-3">
+                    <p class="text-sm font-bold text-white">${cat}</p>`;
+                const sortedPKs = Object.keys(byPC).sort().reverse();
+                sortedPKs.forEach((pk, i) => {
+                    const pct = (byPC[pk] / maxV * 100).toFixed(0);
+                    const prevVal = sortedPKs[i + 1] ? byPC[sortedPKs[i + 1]] : null;
+                    const diff = prevVal ? ((byPC[pk] - prevVal) / prevVal * 100).toFixed(0) : null;
+                    const diffStr = diff !== null
+                        ? `<span class="text-xs ${+diff >= 0 ? 'text-rose-400' : 'text-teal-400'}">${+diff >= 0 ? '▲' : '▼'} ${Math.abs(diff)}%</span>`
+                        : '';
+                    cmpHtml += `<div class="space-y-0.5">
+                        <div class="flex justify-between text-xs text-gray-400">
+                            <span>${periodLabel(pk)}</span>
+                            <div class="flex items-center gap-2">${diffStr}<span class="font-medium text-white">${fmt(byPC[pk])}</span></div>
+                        </div>
+                        ${bar(pct, col)}
+                    </div>`;
+                });
+                cmpHtml += '</div>';
+            });
+            compareEl.innerHTML = cmpHtml;
+        } else {
+            compareEl.innerHTML = '';
+        }
+    }
+
+    document.getElementById('statsMonthFilter').addEventListener('change', renderStats);
+
+    document.getElementById('addBtn').addEventListener('click', addEntry);
+    document.getElementById('amountInput').addEventListener('keydown', e => { if (e.key === 'Enter') addEntry(); });
+
+    // ─── Delete ───────────────────────────────────────────────────────────────
+    function openConfirm(id, title) {
+        pendingDeleteId = id;
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmModal').classList.remove('hidden');
+    }
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+        if (!pendingDeleteId) return;
+        document.getElementById('confirmModal').classList.add('hidden');
+        try {
+            if (useFirebase && db) await deleteDoc(doc(db, 'ausgaben', pendingDeleteId));
+            else { localDelete(pendingDeleteId); loadFromLocal(); }
+        } catch (e) { alert('Fehler beim Löschen: ' + e.message); }
+        pendingDeleteId = null;
+    });
+
+    document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
+        document.getElementById('confirmModal').classList.add('hidden'); pendingDeleteId = null;
+    });
+
+    // ─── Settings ─────────────────────────────────────────────────────────────
+    function renderCatBudgetInputs() {
+        const budgets  = getCatBudgets();
+        const allCats  = ['Lebensmittel', 'Transport', 'Kinder'];
+        const el       = document.getElementById('catBudgetInputs');
+        el.innerHTML   = allCats.map(cat => {
+            const s = getCatStyle(cat);
+            return `<div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-full flex-shrink-0" style="background:${s.dot}22;border:1.5px solid ${s.dot}"></span>
+                <span class="text-sm text-gray-300 flex-1">${cat}</span>
+                <input type="number" data-cat="${cat}" value="${budgets[cat] || ''}" placeholder="∞"
+                    class="w-20 bg-gray-700 text-white p-1.5 rounded text-sm border border-transparent focus:outline-none focus:border-teal-500 text-right">
+                <span class="text-gray-500 text-xs">€</span>
+            </div>`;
+        }).join('');
+    }
+
+    document.getElementById('openSettingsBtn').addEventListener('click', () => {
+        refreshCategorySelects();
+        renderCustomList();
+        renderCatBudgetInputs();
+        document.getElementById('resetDayInput').value = getResetDay();
+        document.getElementById('settingsModal').classList.remove('hidden');
+    });
+
+    // ── Aufklappbare Bereiche in den Einstellungen ──────────────────────────
+    function setupToggle(btnId, sectionId, iconId) {
+        document.getElementById(btnId).addEventListener('click', () => {
+            const section = document.getElementById(sectionId);
+            const icon    = document.getElementById(iconId);
+            const isOpen  = !section.classList.contains('hidden');
+            section.classList.toggle('hidden');
+            icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+        });
+    }
+    setupToggle('toggleKeywordsBtn', 'keywordsSection', 'toggleKeywordsIcon');
+    setupToggle('toggleCatBudgetBtn', 'catBudgetSection', 'toggleCatBudgetIcon');
+
+    document.getElementById('saveCatBudgetsBtn').addEventListener('click', () => {
+        const inputs  = document.querySelectorAll('#catBudgetInputs input[data-cat]');
+        const budgets = {};
+        inputs.forEach(inp => { const v = parseFloat(inp.value); if (v > 0) budgets[inp.dataset.cat] = v; });
+        localStorage.setItem(CAT_BUDGET_KEY, JSON.stringify(budgets));
+        render();
+        document.getElementById('saveCatBudgetsBtn').textContent = '✔ Gespeichert!';
+        setTimeout(() => { document.getElementById('saveCatBudgetsBtn').textContent = '💾 Kategorie-Budgets speichern'; }, 1500);
+    });
+
+    document.getElementById('saveResetDayBtn').addEventListener('click', () => {
+        const day = parseInt(document.getElementById('resetDayInput').value);
+        if (day >= 1 && day <= 28) {
+            localStorage.setItem(RESET_DAY_KEY, day);
+            // Update hint text
+            const nextDay = day - 1 > 0 ? day - 1 : 28;
+            document.querySelector('#saveResetDayBtn').closest('.space-y-2').querySelector('p').textContent =
+                `Budget-Zeitraum läuft vom ${day}. bis zum ${nextDay}. des nächsten Monats.`;
+            render();
+            document.getElementById('saveResetDayBtn').textContent = '✔';
+            setTimeout(() => { document.getElementById('saveResetDayBtn').textContent = '✔'; }, 1500);
+        }
+    });
+
+    document.getElementById('customCatSelect').addEventListener('change', () => {
+        const isNew = document.getElementById('customCatSelect').value === '__new__';
+        document.getElementById('newCatNameInput').classList.toggle('hidden', !isNew);
+    });
+
+    document.getElementById('saveCustomKeyBtn').addEventListener('click', () => {
+        const keyword = document.getElementById('customKeyInput').value.trim();
+        let   category = document.getElementById('customCatSelect').value;
+
+        if (!keyword)   { alert('Bitte ein Keyword eingeben.'); return; }
+        if (!category)  { alert('Bitte eine Kategorie wählen.'); return; }
+
+        if (category === '__new__') {
+            const newName = document.getElementById('newCatNameInput').value.trim();
+            if (!newName) { alert('Bitte einen Kategorienamen eingeben.'); return; }
+            // Neue Kategorie mit Farbe speichern
+            const cc  = getCustomCats();
+            const idx = Object.keys(cc).length % EXTRA_COLORS.length;
+            cc[newName] = EXTRA_COLORS[idx];
+            localStorage.setItem(CUSTOM_CAT_KEY, JSON.stringify(cc));
+            category = newName;
+            document.getElementById('newCatNameInput').value = '';
+            document.getElementById('newCatNameInput').classList.add('hidden');
+        }
+
+        const kw = getCustomKW();
+        if (!kw[category]) kw[category] = [];
+        const lw = keyword.toLowerCase();
+        if (!kw[category].includes(lw)) kw[category].push(lw);
+        localStorage.setItem(CUSTOM_KW_KEY, JSON.stringify(kw));
+
+        document.getElementById('customKeyInput').value = '';
+        document.getElementById('customCatSelect').value = '';
+        renderCustomList();
+        refreshCategorySelects();
+    });
+
+    document.getElementById('cancelSettingsBtn').addEventListener('click', () =>
+        document.getElementById('settingsModal').classList.add('hidden'));
+
+    document.getElementById('clearLocalBtn').addEventListener('click', () => {
+        if (confirm('Wirklich ALLE Daten löschen?')) {
+            if (!useFirebase) { localStorage.removeItem(LOCAL_KEY); loadFromLocal(); }
+            else alert('Im Firebase-Modus: Einträge einzeln löschen.');
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+    });
+
+    // ─── Firebase Init ────────────────────────────────────────────────────────
+    function initApp() {
+        try {
+            const app = getApps().length === 0 ? initializeApp(FIREBASE_CONFIG) : getApp();
+            db   = getFirestore(app);
+            auth = getAuth(app);
+            signInAnonymously(auth)
+                .then(() => {
+                    setMode(true);
+                    onSnapshot(
+                        query(collection(db, 'ausgaben'), orderBy('timestamp', 'desc')),
+                        snap => { allEntries = []; snap.forEach(d => allEntries.push({ id: d.id, ...d.data() })); rebuildMonthFilter(); render(); if (!document.getElementById('statistikView').classList.contains('hidden')) renderStats(); },
+                        err  => { setMode(false, err.code); loadFromLocal(); }
+                    );
+                })
+                .catch(err => { setMode(false, err.code + ': ' + err.message); loadFromLocal(); });
+        } catch (err) {
+            setMode(false, err.message); loadFromLocal();
+        }
+    }
+</script>
+</body>
+</html>
