@@ -115,6 +115,7 @@
                     <p class="text-xs text-gray-400 uppercase tracking-wide">Übrig</p>
                     <p id="budgetRemainingTop" class="text-4xl font-bold text-teal-400">0,00 €</p>
                     <p id="dailyAvailable" class="text-xs text-gray-400 mt-1"></p>
+                    <p id="weeklyAvailable" class="text-xs text-gray-400 mt-1"></p>
                 </div>
                 <div class="w-full bg-gray-800 rounded-full h-2 shadow-inner">
                     <div id="budgetProgress" class="bg-teal-500 h-2 rounded-full transition-all duration-500" style="width:0%"></div>
@@ -511,6 +512,21 @@
         return allEntries.filter(e => { const d = getDate(e.timestamp); return d && d >= start; });
     }
 
+    // Beginn der aktuellen Woche innerhalb des Budgetzeitraums (7-Tage-Blöcke ab Reset-Tag, kein Rollover)
+    function getCurrentWeekStart() {
+        const periodStart = getBudgetPeriodStart();
+        const todayMid    = new Date(); todayMid.setHours(0, 0, 0, 0);
+        const msPerDay    = 1000 * 60 * 60 * 24;
+        const daysSinceStart = Math.floor((todayMid - periodStart) / msPerDay);
+        const weekIndex   = Math.floor(daysSinceStart / 7);
+        return new Date(periodStart.getFullYear(), periodStart.getMonth(), periodStart.getDate() + weekIndex * 7);
+    }
+
+    function getCurrentWeekEntries() {
+        const start = getCurrentWeekStart();
+        return allEntries.filter(e => { const d = getDate(e.timestamp); return d && d >= start; });
+    }
+
     function updateBudgetPeriodLabel() {
         const start = getBudgetPeriodStart();
         const day   = getResetDay();
@@ -829,6 +845,18 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
         dailyEl.textContent = rem > 0
             ? `≈ ${fmt(rem / daysLeft)} pro Tag (${daysLeft} Tage übrig)`
             : 'Budget aufgebraucht';
+
+        // Wochenbudget: Gesamtbudget / 4, verfällt jede Woche neu (kein Rollover)
+        const weeklyBudget    = bud / 4;
+        const weekSpent       = getCurrentWeekEntries().reduce((sum, e) => sum + (e.amount || 0), 0);
+        const weekRemaining   = weeklyBudget - weekSpent;
+        const weekOver        = weekRemaining < 0;
+        const weekWarn        = !weekOver && weekRemaining <= weeklyBudget * 0.2;
+        const weeklyEl        = document.getElementById('weeklyAvailable');
+        weeklyEl.textContent  = weekOver
+            ? `⚠ Wochenbudget überschritten um ${fmt(Math.abs(weekRemaining))} (${fmt(weeklyBudget)}/Woche)`
+            : `${fmt(weekRemaining)} übrig diese Woche (${fmt(weeklyBudget)}/Woche)`;
+        weeklyEl.className    = 'text-xs mt-1 ' + (weekOver ? 'text-rose-500 font-bold' : weekWarn ? 'text-amber-400' : 'text-gray-400');
 
         const bar = document.getElementById('budgetProgress');
         bar.style.width = pct + '%';
