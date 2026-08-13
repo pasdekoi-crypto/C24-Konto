@@ -112,10 +112,10 @@
             <!-- Budget -->
             <div class="bg-gray-700/50 rounded-xl p-4 border border-gray-600 flex flex-col gap-3">
                 <div class="text-center">
-                    <p class="text-xs text-gray-400 uppercase tracking-wide">Übrig</p>
+                    <p class="text-xs text-gray-400 uppercase tracking-wide">Übrig diese Woche</p>
                     <p id="budgetRemainingTop" class="text-4xl font-bold text-teal-400">0,00 €</p>
-                    <p id="dailyAvailable" class="text-xs text-gray-400 mt-1"></p>
                     <p id="weeklyAvailable" class="text-xs text-gray-400 mt-1"></p>
+                    <p id="dailyAvailable" class="text-xs text-gray-500 mt-1"></p>
                 </div>
                 <div class="w-full bg-gray-800 rounded-full h-2 shadow-inner">
                     <div id="budgetProgress" class="bg-teal-500 h-2 rounded-full transition-all duration-500" style="width:0%"></div>
@@ -146,7 +146,7 @@
             <div class="flex gap-3 items-center">
                 <select id="monthFilter"
                     class="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:outline-none focus:border-teal-500 text-sm">
-                    <option value="all">Alle Monate</option>
+                    <option value="all">Alle Zeiträume</option>
                 </select>
                 <button id="csvBtn"
                     class="bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-300 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap">
@@ -376,6 +376,7 @@
     let currentUser     = null;   // 'Ahmed' | 'Rania'
     let selectedPerson  = 'Ahmed';
     let selectedMonth   = 'all';
+    let monthFilterInitialized = false;
 
     const LOCAL_KEY      = 'ahmed_ausgaben';
     const LOGIN_KEY      = 'ahmed_logged_user';
@@ -495,6 +496,11 @@
         const d = getDate(ts);
         if (!d) return null;
         const start = getBudgetPeriodStart(d);
+        return start.getFullYear() + '-' + String(start.getMonth() + 1).padStart(2, '0');
+    }
+
+    function currentPeriodKey() {
+        const start = getBudgetPeriodStart();
         return start.getFullYear() + '-' + String(start.getMonth() + 1).padStart(2, '0');
     }
 
@@ -674,15 +680,9 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
         return null;
     }
 
-    function monthKey(ts) {
-        const d = getDate(ts);
-        if (!d) return null;
-        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-    }
-
     function filtered() {
         if (selectedMonth === 'all') return allEntries;
-        return allEntries.filter(e => monthKey(e.timestamp) === selectedMonth);
+        return allEntries.filter(e => periodKey(e.timestamp) === selectedMonth);
     }
 
     // ─── LOGIN ────────────────────────────────────────────────────────────────
@@ -827,24 +827,6 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
     function updateBudget(total) {
         const bud  = parseFloat(document.getElementById('budgetInput').value) || 0;
         const rem  = bud - total;
-        const pct  = bud > 0 ? Math.min((total / bud) * 100, 100) : 0;
-        const over = total > bud;
-
-        const low  = rem <= 50;
-        const warn = !low && rem <= 150;
-        const remEl = document.getElementById('budgetRemainingTop');
-        remEl.textContent = fmt(rem);
-        remEl.className   = 'text-4xl font-bold ' + (low ? 'text-rose-500 heartbeat' : warn ? 'text-amber-400' : 'text-teal-400');
-
-        // Heute noch verfügbar (Restbudget verteilt auf die restlichen Tage der Periode)
-        const msPerDay  = 1000 * 60 * 60 * 24;
-        const todayMid  = new Date(); todayMid.setHours(0, 0, 0, 0);
-        const endMid    = getBudgetPeriodEnd(); endMid.setHours(0, 0, 0, 0);
-        const daysLeft  = Math.max(1, Math.round((endMid - todayMid) / msPerDay) + 1);
-        const dailyEl   = document.getElementById('dailyAvailable');
-        dailyEl.textContent = rem > 0
-            ? `≈ ${fmt(rem / daysLeft)} pro Tag (${daysLeft} Tage übrig)`
-            : 'Budget aufgebraucht';
 
         // Wochenbudget: Gesamtbudget / 4, verfällt jede Woche neu (kein Rollover)
         const weeklyBudget    = bud / 4;
@@ -852,17 +834,28 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
         const weekRemaining   = weeklyBudget - weekSpent;
         const weekOver        = weekRemaining < 0;
         const weekWarn        = !weekOver && weekRemaining <= weeklyBudget * 0.2;
-        const weeklyEl        = document.getElementById('weeklyAvailable');
-        weeklyEl.textContent  = weekOver
+        const weekPct         = weeklyBudget > 0 ? Math.min((weekSpent / weeklyBudget) * 100, 100) : 0;
+
+        // Große Anzeige oben: Wochen-Restbudget
+        const remEl = document.getElementById('budgetRemainingTop');
+        remEl.textContent = fmt(weekRemaining);
+        remEl.className   = 'text-4xl font-bold ' + (weekOver ? 'text-rose-500 heartbeat' : weekWarn ? 'text-amber-400' : 'text-teal-400');
+
+        const weeklyEl = document.getElementById('weeklyAvailable');
+        weeklyEl.textContent = weekOver
             ? `⚠ Wochenbudget überschritten um ${fmt(Math.abs(weekRemaining))} (${fmt(weeklyBudget)}/Woche)`
-            : `${fmt(weekRemaining)} übrig diese Woche (${fmt(weeklyBudget)}/Woche)`;
-        weeklyEl.className    = 'text-xs mt-1 ' + (weekOver ? 'text-rose-500 font-bold' : weekWarn ? 'text-amber-400' : 'text-gray-400');
+            : `von ${fmt(weeklyBudget)} diese Woche`;
+        weeklyEl.className = 'text-xs mt-1 ' + (weekOver ? 'text-rose-500 font-bold' : weekWarn ? 'text-amber-400' : 'text-gray-400');
+
+        // Monatsübersicht als Zweitinfo
+        const dailyEl = document.getElementById('dailyAvailable');
+        dailyEl.textContent = `Monat gesamt: ${fmt(rem)} übrig von ${fmt(bud)}`;
 
         const bar = document.getElementById('budgetProgress');
-        bar.style.width = pct + '%';
-        bar.className   = 'h-2 rounded-full transition-all duration-500 ' + (over ? 'bg-rose-500' : 'bg-teal-500');
+        bar.style.width = weekPct + '%';
+        bar.className   = 'h-2 rounded-full transition-all duration-500 ' + (weekOver ? 'bg-rose-500' : 'bg-teal-500');
 
-        document.getElementById('totalSpentBottom').textContent = fmt(total) + ' ausgegeben';
+        document.getElementById('totalSpentBottom').textContent = fmt(total) + ' ausgegeben (Monat)';
     }
 
     document.getElementById('budgetInput').addEventListener('input', () => updateBudget(lastTotal));
@@ -1055,18 +1048,24 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
 
     // ─── Month Filter ─────────────────────────────────────────────────────────
     function rebuildMonthFilter() {
-        const months = new Set(allEntries.map(e => monthKey(e.timestamp)).filter(Boolean));
+        const cur     = currentPeriodKey();
+        const periods = new Set(allEntries.map(e => periodKey(e.timestamp)).filter(Boolean));
+        periods.add(cur);
         const sel    = document.getElementById('monthFilter');
         const prev   = sel.value;
-        sel.innerHTML = '<option value="all">Alle Monate</option>';
-        [...months].sort().reverse().forEach(m => {
-            const [y, mo] = m.split('-');
-            const label   = new Date(y, mo - 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
-            const opt     = document.createElement('option');
-            opt.value = m; opt.textContent = label;
+        sel.innerHTML = '<option value="all">Alle Zeiträume</option>';
+        [...periods].sort().reverse().forEach(pk => {
+            const opt = document.createElement('option');
+            opt.value = pk;
+            opt.textContent = periodLabel(pk) + (pk === cur ? ' (aktuell)' : '');
             sel.appendChild(opt);
         });
-        if ([...months].includes(prev)) sel.value = prev;
+        if (monthFilterInitialized && (prev === 'all' || [...periods].includes(prev))) {
+            sel.value = prev;
+        } else {
+            sel.value = cur;
+        }
+        monthFilterInitialized = true;
         selectedMonth = sel.value;
     }
 
