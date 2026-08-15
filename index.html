@@ -113,9 +113,10 @@
             <div class="bg-gray-700/50 rounded-xl p-4 border border-gray-600 flex flex-col gap-3">
                 <div class="text-center">
                     <p class="text-xs text-gray-400 uppercase tracking-wide">Übrig diese Woche</p>
-                    <div class="relative flex items-center justify-center">
-                        <span id="weekCountdown" class="absolute left-0 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400 bg-gray-800 rounded-full px-2 py-1 whitespace-nowrap"></span>
+                    <div class="flex items-center justify-center gap-2">
+                        <span id="weekCountdown" class="text-xs font-semibold text-gray-400 bg-gray-800 rounded-full px-2 py-1 whitespace-nowrap"></span>
                         <p id="budgetRemainingTop" class="text-4xl font-bold text-teal-400">0,00 €</p>
+                        <span id="weekCountdownSpacer" aria-hidden="true" class="invisible text-xs font-semibold rounded-full px-2 py-1 whitespace-nowrap"></span>
                     </div>
                     <p id="weeklyAvailable" class="text-xs text-gray-400 mt-1"></p>
                     <p id="dailyAvailable" class="text-xs text-gray-500 mt-1"></p>
@@ -849,8 +850,9 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
         const weekEnd    = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 7);
         const todayMid   = new Date(); todayMid.setHours(0, 0, 0, 0);
         const daysLeft   = Math.ceil((weekEnd - todayMid) / (1000 * 60 * 60 * 24));
-        const countdownEl = document.getElementById('weekCountdown');
-        countdownEl.textContent = daysLeft <= 0 ? 'endet heute' : daysLeft === 1 ? 'noch 1 Tag' : `noch ${daysLeft} Tage`;
+        const countdownText = daysLeft <= 0 ? 'endet heute' : daysLeft === 1 ? 'noch 1 Tag' : `noch ${daysLeft} Tage`;
+        document.getElementById('weekCountdown').textContent = countdownText;
+        document.getElementById('weekCountdownSpacer').textContent = countdownText;
 
         const weeklyEl = document.getElementById('weeklyAvailable');
         weeklyEl.textContent = weekOver
