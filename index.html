@@ -787,6 +787,63 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
     // Lokal gecachte Einstellungen sofort anzeigen (bevor Firebase evtl. aktuellere liefert)
     document.getElementById('budgetInput').value = sharedSettings.budget;
 
+    // ─── Apple Pay über iPhone-Kurzbefehl: ?betrag=23,40&haendler=REWE&wer=Ahmed ───
+    const APPLEPAY_LAST_KEY = 'applepay_last';
+    let pendingApplePay = null;
+    const urlParams = new URLSearchParams(location.search);
+    if (urlParams.has('betrag')) {
+        pendingApplePay = {
+            amount: parseAmount(urlParams.get('betrag')),
+            title:  (urlParams.get('haendler') || '').trim() || 'Apple Pay',
+            who:    urlParams.get('wer')
+        };
+        // Parameter aus der Adresse entfernen, damit ein Neuladen nicht doppelt bucht
+        history.replaceState(null, '', location.pathname);
+    }
+
+    // "23,40 €", "1.234,56", "23.40" → Zahl
+    function parseAmount(raw) {
+        let s = String(raw || '').replace(/[^\d,.-]/g, '');
+        if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+        return Math.abs(parseFloat(s));
+    }
+
+    function showToast(text, isError) {
+        const t = document.createElement('div');
+        t.textContent = text;
+        t.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold text-center max-w-[90%] '
+            + (isError ? 'bg-rose-600 text-white' : 'bg-teal-500 text-gray-900');
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 4000);
+    }
+
+    async function processApplePay() {
+        if (!pendingApplePay) return;
+        const p = pendingApplePay;
+        pendingApplePay = null;
+
+        if (isNaN(p.amount) || p.amount <= 0) { showToast('⚠ Apple Pay: Betrag nicht erkannt', true); return; }
+
+        // Schutz gegen Doppelbuchung (gleicher Betrag + Händler innerhalb von 2 Minuten)
+        const sig = p.amount.toFixed(2) + '|' + p.title;
+        try {
+            const last = JSON.parse(localStorage.getItem(APPLEPAY_LAST_KEY) || 'null');
+            if (last && last.sig === sig && Date.now() - last.at < 2 * 60 * 1000) return;
+            localStorage.setItem(APPLEPAY_LAST_KEY, JSON.stringify({ sig, at: Date.now() }));
+        } catch (e) {}
+
+        const person = (p.who === 'Ahmed' || p.who === 'Rania') ? p.who : (currentUser || 'Ahmed');
+        if (!currentUser) login(person);
+        const data = { title: p.title, note: 'Apple Pay', category: detectCategory(p.title) || 'Sonstiges', person, amount: p.amount };
+        try {
+            if (useFirebase && db) await addDoc(collection(db, 'ausgaben'), { ...data, timestamp: serverTimestamp() });
+            else { localAdd(data); loadFromLocal(); }
+            showToast(`✓ Apple Pay: ${p.title} ${fmt(p.amount)} eingetragen`);
+        } catch (e) {
+            showToast('⚠ Apple Pay konnte nicht gespeichert werden: ' + e.message, true);
+        }
+    }
+
     // Firebase SOFORT starten — unabhängig vom Login
     initApp();
 
@@ -1588,6 +1645,7 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
             signInAnonymously(auth)
                 .then(() => {
                     setMode(true);
+                    processApplePay();
                     onSnapshot(
                         query(collection(db, 'ausgaben'), orderBy('timestamp', 'desc')),
                         snap => { allEntries = []; snap.forEach(d => allEntries.push({ id: d.id, ...d.data() })); rebuildMonthFilter(); render(); if (!document.getElementById('statistikView').classList.contains('hidden')) renderStats(); },
@@ -1608,9 +1666,9 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
                         err => console.error('Settings-Sync Fehler:', err.code)
                     );
                 })
-                .catch(err => { setMode(false, err.code + ': ' + err.message); loadFromLocal(); });
+                .catch(err => { setMode(false, err.code + ': ' + err.message); loadFromLocal(); processApplePay(); });
         } catch (err) {
-            setMode(false, err.message); loadFromLocal();
+            setMode(false, err.message); loadFromLocal(); processApplePay();
         }
     }
 </script>
