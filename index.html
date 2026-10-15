@@ -519,7 +519,7 @@
         return allEntries.filter(e => { const d = getDate(e.timestamp); return d && d >= start; });
     }
 
-    // Beginn der aktuellen Woche innerhalb des Budgetzeitraums (7-Tage-Blöcke ab Reset-Tag, kein Rollover)
+    // Beginn der aktuellen Woche innerhalb des Budgetzeitraums (7-Tage-Blöcke ab Reset-Tag)
     function getCurrentWeekStart() {
         const periodStart = getBudgetPeriodStart();
         const todayMid    = new Date(); todayMid.setHours(0, 0, 0, 0);
@@ -829,13 +829,21 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
         const bud  = parseFloat(document.getElementById('budgetInput').value) || 0;
         const rem  = bud - total;
 
-        // Wochenbudget: Gesamtbudget / 4, verfällt jede Woche neu (kein Rollover)
+        // Wochenbudget: Gesamtbudget / 4, Rest bzw. Minus der Vorwochen wird übertragen
+        // (nur innerhalb des Gehaltszeitraums; ab Woche 5 zählt nur noch das Monats-Restbudget)
         const weeklyBudget    = bud / 4;
+        const periodStart     = getBudgetPeriodStart();
+        const curWeekStart    = getCurrentWeekStart();
+        const weekIndex       = Math.round((curWeekStart - periodStart) / (1000 * 60 * 60 * 24 * 7));
+        const spentBefore     = allEntries.filter(e => { const d = getDate(e.timestamp); return d && d >= periodStart && d < curWeekStart; })
+                                          .reduce((sum, e) => sum + (e.amount || 0), 0);
+        const carryOver       = Math.min(weekIndex, 4) * weeklyBudget - spentBefore;
+        const weekAvailable   = (weekIndex >= 4 ? 0 : weeklyBudget) + carryOver;
         const weekSpent       = getCurrentWeekEntries().reduce((sum, e) => sum + (e.amount || 0), 0);
-        const weekRemaining   = weeklyBudget - weekSpent;
+        const weekRemaining   = weekAvailable - weekSpent;
         const weekOver        = weekRemaining < 0;
         const weekWarn        = !weekOver && weekRemaining <= weeklyBudget * 0.2;
-        const weekPct         = weeklyBudget > 0 ? Math.min((weekSpent / weeklyBudget) * 100, 100) : 0;
+        const weekPct         = weekAvailable > 0 ? Math.min((weekSpent / weekAvailable) * 100, 100) : 100;
 
         // Große Anzeige oben: Wochen-Restbudget
         const remEl = document.getElementById('budgetRemainingTop');
@@ -851,9 +859,12 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
         document.getElementById('weekCountdown').textContent = countdownText;
 
         const weeklyEl = document.getElementById('weeklyAvailable');
+        const carryText = weekIndex >= 4 || Math.abs(carryOver) < 0.005 ? ''
+            : carryOver > 0 ? ` (${fmt(weeklyBudget)} + ${fmt(carryOver)} aus Vorwoche)`
+            : ` (${fmt(weeklyBudget)} − ${fmt(Math.abs(carryOver))} aus Vorwoche)`;
         weeklyEl.textContent = weekOver
-            ? `⚠ Wochenbudget überschritten um ${fmt(Math.abs(weekRemaining))} (${fmt(weeklyBudget)}/Woche)`
-            : `von ${fmt(weeklyBudget)} diese Woche`;
+            ? `⚠ Wochenbudget überschritten um ${fmt(Math.abs(weekRemaining))}${carryText}`
+            : `von ${fmt(weekAvailable)} diese Woche${carryText}`;
         weeklyEl.className = 'text-xs mt-1 ' + (weekOver ? 'text-rose-500 font-bold' : weekWarn ? 'text-amber-400' : 'text-gray-400');
 
         // Monatsübersicht als Zweitinfo
