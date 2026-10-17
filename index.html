@@ -787,7 +787,7 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
     // Lokal gecachte Einstellungen sofort anzeigen (bevor Firebase evtl. aktuellere liefert)
     document.getElementById('budgetInput').value = sharedSettings.budget;
 
-    // ─── Apple Pay über iPhone-Kurzbefehl: ?betrag=23,40&haendler=REWE&wer=Ahmed ───
+    // ─── Apple Pay über iPhone-Kurzbefehl: ?betrag=23,40&haendler=REWE&wer=Ahmed oder ?wer=Ahmed&d=23,40|REWE ───
     const APPLEPAY_LAST_KEY = 'applepay_last';
     let pendingApplePay = null;
     const urlParams = new URLSearchParams(location.search);
@@ -798,6 +798,15 @@ self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>cache
             who:    urlParams.get('wer')
         };
         // Parameter aus der Adresse entfernen, damit ein Neuladen nicht doppelt bucht
+        history.replaceState(null, '', location.pathname);
+    } else if (urlParams.has('d')) {
+        // Kurzform aus dem Kurzbefehl: ?wer=Ahmed&d=<URL-codiert "23,40 €|REWE">
+        const parts = urlParams.get('d').split('|');
+        pendingApplePay = {
+            amount: parseAmount(parts[0]),
+            title:  parts.slice(1).join('|').trim() || 'Apple Pay',
+            who:    urlParams.get('wer')
+        };
         history.replaceState(null, '', location.pathname);
     }
 
